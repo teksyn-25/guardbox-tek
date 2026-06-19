@@ -117,8 +117,9 @@ the commercial terms. Set up the CLA before accepting the first external PR.
 | "The original never reaches the gallery, file manager, or other apps" | ✅ TRUE | Confined to Telegram's private sandbox (if anywhere), never exposed beyond it. |
 
 **Use in copy:** *"GuardBox receives the file directly from Telegram's servers — it
-never travels through your device. Only the reconstructed clean copy is sent back to
-your phone."* Do not claim absolute "never on the device's disk in any circumstance."
+never travels through your device. You view a screenshot of the reconstructed clean
+copy in the app — the file itself never travels to your phone."* Do not claim absolute
+"never on the device's disk in any circumstance."
 
 #### WhatsApp path — claim truth table (assumes required user posture configured)
 
@@ -135,7 +136,9 @@ your phone."* Do not claim absolute "never on the device's disk in any circumsta
 it in GuardBox's own storage, and doesn't decode it on your phone. WhatsApp briefly
 holds it in its own private storage in order to share it — that part is outside
 GuardBox's control. With auto-download off, this only happens when you explicitly
-choose to share."* Do not claim "never touches the device" for the WhatsApp path.
+choose to share. You view a screenshot of the reconstructed clean copy in the app —
+the file itself is never sent to your phone."* Do not claim "never touches the device"
+for the WhatsApp path.
 
 ### Required user posture — both messaging apps configured the same way
 

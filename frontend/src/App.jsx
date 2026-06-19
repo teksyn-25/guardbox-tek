@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from "react";
 
 /*  GuardBox — Dashboard
-    Layout matches the provided design:
+    Layout:
       ┌─── header: logo · wordmark · Login / Traces ───┐
-      │  three stat cards: Safe · Scanning · Threats   │
+      │  three stat cards: Saved · Pending · Threats   │
       │  Your Images                       [Clear all] │
       │  three source folders: WhatsApp · Telegram · … │
       │  floating "+" action button                    │
       └────────────────────────────────────────────────┘
     Tapping a source folder drills into that source's files.
     Tapping a file opens the containment viewer (Save / Delete).
-    Storage is still folder-based: `pending/{user_id}/` + `saved/{user_id}/`
-    with each file tagged by `source` — exactly per portability rules.   */
+    State model: files are `pending` until kept; `saved` once confirmed.
+    Each file tagged by `source` (telegram_bot | share_sheet | other).
+    Viewer shows a screenshot via signed URL — no file is sent to device.   */
 
 // ---- self-hosted font stack only — no Google Fonts (per portability rules)
 const FONT_DISPLAY = '"Space Grotesk", "Segoe UI", system-ui, sans-serif';
@@ -37,10 +38,17 @@ const C = {
 
 // ----- mock data (real app: GET /files; each row tagged by `source`) -----
 const SEED = [
-  { id: "f1", name: "IMG-2026-0619.jpg",      source: "telegram", state: "safe",     stripped: ["EXIF", "GPS", "ICC"], received: "just now",   hue: 168, fmt: "JPEG → PNG", sizeIn: "2.4 MB", sizeOut: "1.1 MB" },
-  { id: "f2", name: "scan_document.png",       source: "telegram", state: "safe",     stripped: ["EXIF", "thumbnail"],   received: "4m ago",      hue: 28,  fmt: "PNG → PNG",  sizeIn: "5.1 MB", sizeOut: "2.0 MB" },
-  { id: "f3", name: "receipt.jpg",              source: "telegram", state: "safe",     stripped: ["EXIF", "GPS"],         received: "2h ago",      hue: 200, fmt: "JPEG → PNG", sizeIn: "880 KB", sizeOut: "640 KB" },
+  { id: "f1", name: "IMG-2026-0619.jpg", source: "telegram_bot", state: "pending", stripped: ["EXIF", "GPS", "ICC"], received: "just now", hue: 168, fmt: "JPEG → PNG", sizeIn: "2.4 MB", sizeOut: "1.1 MB" },
+  { id: "f2", name: "scan_document.png", source: "telegram_bot", state: "pending", stripped: ["EXIF", "thumbnail"],  received: "4m ago",   hue: 28,  fmt: "PNG → PNG",  sizeIn: "5.1 MB", sizeOut: "2.0 MB" },
+  { id: "f3", name: "receipt.jpg",       source: "telegram_bot", state: "saved",   stripped: ["EXIF", "GPS"],        received: "2h ago",   hue: 200, fmt: "JPEG → PNG", sizeIn: "880 KB", sizeOut: "640 KB" },
 ];
+
+// wire-format source values are canonical; labels are presentational only
+const SOURCE_LABEL = {
+  telegram_bot: "Telegram",
+  share_sheet:  "WhatsApp",
+  other:        "Other", // reserved for future cloud-storage OAuth intake
+};
 
 export default function GuardBoxDashboard() {
   const [items, setItems] = useState(SEED);
@@ -48,13 +56,13 @@ export default function GuardBoxDashboard() {
   const [toast, setToast] = useState(null);
 
   const counts = useMemo(() => ({
-    safe:     items.filter(i => i.state === "safe").length,
-    scanning: items.filter(i => i.state === "scanning").length,
-    threats:  items.filter(i => (i.stripped?.length ?? 0) > 0 && i.state === "safe").length,
+    pending:     items.filter(i => i.state === "pending").length,
+    saved:       items.filter(i => i.state === "saved").length,
+    threats:     items.filter(i => (i.stripped?.length ?? 0) > 0).length,
     bySource: {
-      whatsapp: items.filter(i => i.source === "whatsapp").length,
-      telegram: items.filter(i => i.source === "telegram").length,
-      other:    items.filter(i => i.source === "other").length,
+      share_sheet:  items.filter(i => i.source === "share_sheet").length,
+      telegram_bot: items.filter(i => i.source === "telegram_bot").length,
+      other:        items.filter(i => i.source === "other").length,
     },
   }), [items]);
 
@@ -146,9 +154,9 @@ function Home({ counts, onOpenFolder, onClearAll }) {
     <div className="gb-rise" style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 26 }}>
       {/* stats row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-        <Stat label="Safe"     value={counts.safe}     icon={<CheckCircleIcon  c={C.safe}/>}    tone="safe" />
-        <Stat label="Scanning" value={counts.scanning} icon={<SpinnerIcon      c={C.amber}/>}  tone="amber" />
-        <Stat label="Threats"  value={counts.threats}  icon={<AlertCircleIcon  c={C.danger}/>} tone="danger" />
+        <Stat label="Saved"   value={counts.saved}   icon={<CheckCircleIcon c={C.safe}/>}   tone="safe" />
+        <Stat label="Pending" value={counts.pending} icon={<SpinnerIcon     c={C.amber}/>}  tone="amber" />
+        <Stat label="Threats" value={counts.threats} icon={<AlertCircleIcon c={C.danger}/>} tone="danger" />
       </div>
 
       {/* section header */}
@@ -165,25 +173,26 @@ function Home({ counts, onOpenFolder, onClearAll }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
         <SourceCard
           label="WhatsApp"
-          count={counts.bySource.whatsapp}
+          count={counts.bySource.share_sheet}
           icon={<ChatBubbleIcon />}
-          source="whatsapp"
-          onOpen={() => onOpenFolder("whatsapp")}
+          source="share_sheet"
+          onOpen={() => onOpenFolder("share_sheet")}
         />
         <SourceCard
           label="Telegram"
-          count={counts.bySource.telegram}
+          count={counts.bySource.telegram_bot}
           icon={<PaperPlaneIcon />}
-          source="telegram"
-          onOpen={() => onOpenFolder("telegram")}
+          source="telegram_bot"
+          onOpen={() => onOpenFolder("telegram_bot")}
         />
+        {/* Other source card hidden until later development. Restore here when the source value is added to the API contract.
         <SourceCard
           label="Other"
           count={counts.bySource.other}
           icon={<ImageStackIcon />}
           source="other"
           onOpen={() => onOpenFolder("other")}
-        />
+        /> */}
       </div>
     </div>
   );
@@ -224,19 +233,18 @@ function SourceCard({ label, count, icon, source, onOpen }) {
 
 /* ===================== FOLDER VIEW ===================== */
 function Folder({ source, items, onBack, onOpenFile }) {
-  const labels = { whatsapp: "WhatsApp", telegram: "Telegram", other: "Other" };
   return (
     <div className="gb-rise" style={{ marginTop: 26, display: "flex", flexDirection: "column", gap: 14 }}>
       <button onClick={onBack} className="gb-tap" style={{ background: "transparent", border: "none", color: C.inkDim, fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
         ← Back
       </button>
-      <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 18 }}>{labels[source]} <span style={{ color: C.inkFaint, fontFamily: FONT_MONO, fontSize: 13, fontWeight: 400, marginLeft: 6 }}>{items.length}</span></h2>
+      <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 18 }}>{SOURCE_LABEL[source] ?? source} <span style={{ color: C.inkFaint, fontFamily: FONT_MONO, fontSize: 13, fontWeight: 400, marginLeft: 6 }}>{items.length}</span></h2>
 
       {items.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: C.inkFaint, fontSize: 13 }}>
-          No images from {labels[source]} yet.
-          {source === "telegram" && <div style={{ marginTop: 8, fontSize: 12 }}>Forward an image to <b style={{ color: C.ink }}>@GuardBoxBot</b>.</div>}
-          {source === "whatsapp" && <div style={{ marginTop: 8, fontSize: 12 }}>Share an image to GuardBox from WhatsApp.</div>}
+          No images from {SOURCE_LABEL[source] ?? source} yet.
+          {source === "telegram_bot" && <div style={{ marginTop: 8, fontSize: 12 }}>Forward an image to <b style={{ color: C.ink }}>@GuardBoxBot</b>.</div>}
+          {source === "share_sheet" && <div style={{ marginTop: 8, fontSize: 12 }}>Share an image to GuardBox from WhatsApp.</div>}
         </div>
       ) : (
         items.map((it, i) => (
@@ -261,9 +269,12 @@ function Folder({ source, items, onBack, onOpenFile }) {
 /* ===================== VIEWER MODAL ===================== */
 function Viewer({ it, onClose, onAct }) {
   if (!it) return null;
-  const claim = it.source === "telegram"
-    ? "Original never reached your device."
-    : "Original never decoded on your device.";
+  const claim =
+    it.source === "telegram_bot"
+      ? "GuardBox receives the file directly from Telegram's servers — it never travels through your device. You view a screenshot of the reconstructed clean copy in the app — the file itself never travels to your phone."
+      : it.source === "share_sheet"
+      ? "GuardBox doesn't save the original to your gallery, doesn't keep it in GuardBox's own storage, and doesn't decode it on your phone. WhatsApp briefly holds it in its own private storage in order to share it — that part is outside GuardBox's control. With auto-download off, this only happens when you explicitly choose to share. You view a screenshot of the reconstructed clean copy in the app — the file itself is never sent to your phone."
+      : "Your file was processed via Content Disarm & Reconstruction. Only the clean copy is shown here."; // TODO: define claim language for cloud-storage intake when wired
   return (
     <div role="dialog" aria-modal="true" onClick={onClose}
       style={{ position: "fixed", inset: 0, background: "rgba(2,8,7,0.85)", backdropFilter: "blur(6px)", zIndex: 60, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
@@ -281,7 +292,7 @@ function Viewer({ it, onClose, onAct }) {
         </div>
 
         <div style={{ margin: "16px 18px", background: "rgba(0,0,0,0.25)", border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
-          <KV k="Origin"    v={`forwarded via ${it.source}`} />
+          <KV k="Origin"    v={`forwarded via ${SOURCE_LABEL[it.source] ?? it.source}`} />
           <KV k="Method"    v="Content Disarm & Reconstruction" accent />
           <KV k="Pipeline"  v={`${it.fmt} · decoded in sandbox · rebuilt fresh`} mono />
           <KV k="Size"      v={`${it.sizeIn} → ${it.sizeOut}`} mono />
