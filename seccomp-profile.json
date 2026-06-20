@@ -1,0 +1,75 @@
+{
+  "defaultAction": "SCMP_ACT_ALLOW",
+  "syscalls": [
+    {
+      "comment": "Prevent container escape via chroot or pivot_root (Docker default misses chroot)",
+      "names": ["chroot"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent host identity manipulation",
+      "names": ["setdomainname", "sethostname"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent kernel log access — no legitimate use in a web/CDR server",
+      "names": ["syslog"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent process tracing and cross-process memory access — common exploit step",
+      "names": ["ptrace", "process_vm_readv", "process_vm_writev"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent kernel module loading/unloading",
+      "names": ["init_module", "finit_module", "delete_module"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent kernel image replacement",
+      "names": ["kexec_load", "kexec_file_load"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent eBPF programs — can bypass security controls",
+      "names": ["bpf"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent performance event access — used in side-channel attacks",
+      "names": ["perf_event_open"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent kernel keyring manipulation",
+      "names": ["add_key", "keyctl", "request_key"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent mounting filesystems",
+      "names": ["mount", "umount2"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent namespace manipulation (container breakout vectors)",
+      "names": ["unshare", "setns"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent swap manipulation",
+      "names": ["swapon", "swapoff"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent system reboot",
+      "names": ["reboot"],
+      "action": "SCMP_ACT_ERRNO"
+    },
+    {
+      "comment": "Prevent process accounting (leaks activity metadata)",
+      "names": ["acct"],
+      "action": "SCMP_ACT_ERRNO"
+    }
+  ]
+}

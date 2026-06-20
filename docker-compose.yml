@@ -9,10 +9,12 @@ services:
       - guardbox_data:/data/guardbox
     tmpfs:
       - /tmp:size=128m,mode=1777
+    read_only: true
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
+      - seccomp:./seccomp-profile.json
     restart: unless-stopped
 
 volumes:
