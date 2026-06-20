@@ -1,0 +1,127 @@
+GuardBox — Self-Hosting Guide (Fedora / Ubuntu / Debian)
+=========================================================
+
+1. Install Docker
+-----------------
+
+Fedora:
+  sudo dnf -y install dnf-plugins-core
+  sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+  sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  sudo systemctl enable --now docker
+  sudo usermod -aG docker $USER
+  newgrp docker
+
+Ubuntu / Debian:
+  sudo apt-get update
+  sudo apt-get install -y ca-certificates curl
+  sudo install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  sudo apt-get update
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  sudo usermod -aG docker $USER
+  newgrp docker
+
+
+2. Get the code
+---------------
+
+  git clone https://github.com/teksyn-25/guardbox-tek.git guardbox
+  cd guardbox
+
+
+3. Create your Telegram bot
+----------------------------
+
+  - Open Telegram and message @BotFather
+  - Send /newbot and follow the prompts
+  - Copy the bot token (e.g. 123456789:ABCdef...)
+  - The numeric ID is the number before the colon in the token
+
+
+4. Configure
+------------
+
+  cp backend/.env.template .env
+
+Edit .env with the following values:
+
+  BOT_TOKEN=123456789:ABCdef...
+  TELEGRAM_BOT_ID=123456789
+  GUARDBOX_BASE_URL=http://localhost:8000
+  SESSION_SECRET=<run: python3 -c "import secrets; print(secrets.token_hex(32))">
+  STORAGE_BACKEND=local
+  SESSION_SECURE_COOKIE=false
+
+Note: Self-hosted runs over HTTP. You control the machine so no TLS is
+needed between your browser and localhost. The Telegram bot connection
+is always server-to-server and handled by Telegram's own TLS.
+
+
+5. Build and start
+------------------
+
+  ./scripts/build.sh
+  docker compose up -d
+
+
+6. Open the dashboard
+---------------------
+
+  Go to http://localhost:8000 in your browser.
+  Click "Log in with Telegram" — confirms in your Telegram app and redirects back.
+
+
+7. Forward an image
+-------------------
+
+  In Telegram, forward any image to your bot (@YourBotName).
+  It appears in your dashboard within seconds — clean, metadata-stripped, safe to view.
+
+
+8. Updating
+-----------
+
+  git pull
+  docker compose build --no-cache
+  docker compose up -d
+
+
+Troubleshooting (Fedora)
+------------------------
+
+If the dashboard is not reachable after starting, firewalld may be blocking
+Docker's internal network. Run:
+
+  sudo firewall-cmd --zone=trusted --add-interface=docker0 --permanent
+  sudo firewall-cmd --reload
+
+Then restart the container:
+
+  docker compose down && docker compose up -d
+
+
+Optional: HTTPS for remote access
+----------------------------------
+
+If you want GuardBox reachable from outside your local machine, put it
+behind Caddy (handles TLS certificate renewal automatically):
+
+  Fedora:         sudo dnf install caddy
+  Ubuntu/Debian:  sudo apt-get install caddy
+
+Create /etc/caddy/Caddyfile:
+  yourdomain.com {
+      reverse_proxy 127.0.0.1:8000
+  }
+
+Update .env:
+  GUARDBOX_BASE_URL=https://yourdomain.com
+  SESSION_SECURE_COOKIE=true
+
+Then:
+  sudo systemctl enable --now caddy
+  docker compose up -d
