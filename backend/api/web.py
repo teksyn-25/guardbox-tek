@@ -110,10 +110,10 @@ async def index(
 ) -> Response:
     if not user_id:
         return RedirectResponse("/auth/login", status_code=302)
-    ctx = _dash_ctx(request, user_id, storage)
+    ctx = _dash_ctx(user_id, storage)
     if _htmx(request):
-        return templates.TemplateResponse("partials/_dashboard.html", ctx)
-    return templates.TemplateResponse("dashboard.html", ctx)
+        return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
+    return templates.TemplateResponse(request, "dashboard.html", ctx)
 
 
 @router.get("/folder/{source}", response_class=HTMLResponse)
@@ -126,10 +126,9 @@ async def folder(
     if not user_id:
         return RedirectResponse("/auth/login", status_code=302)
     if not _htmx(request):
-        return RedirectResponse("/")
+        return RedirectResponse("/", status_code=302)
     all_files = storage.list(user_id, "pending") + storage.list(user_id, "saved")
-    return templates.TemplateResponse("partials/_folder.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "partials/_folder.html", {
         "source": source,
         "files": [f for f in all_files if f.get("source") == source],
     })
@@ -145,13 +144,12 @@ async def viewer(
     if not user_id:
         raise HTTPException(status_code=401)
     if not _htmx(request):
-        return RedirectResponse("/")
+        return RedirectResponse("/", status_code=302)
     try:
         _, meta = storage.get(user_id, file_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse("partials/_viewer.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "partials/_viewer.html", {
         "file": meta,
     })
 
@@ -171,7 +169,7 @@ async def web_save(
         storage.move(user_id, file_id, "saved")
     except FileNotFoundError:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse("partials/_dashboard.html", _dash_ctx(request, user_id, storage))
+    return templates.TemplateResponse(request, "partials/_dashboard.html", _dash_ctx(user_id, storage))
 
 
 @router.delete("/files/{file_id}", response_class=HTMLResponse)
@@ -187,7 +185,7 @@ async def web_delete(
         storage.delete(user_id, file_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse("partials/_dashboard.html", _dash_ctx(request, user_id, storage))
+    return templates.TemplateResponse(request, "partials/_dashboard.html", _dash_ctx(user_id, storage))
 
 
 @router.delete("/files", response_class=HTMLResponse)
@@ -201,16 +199,15 @@ async def web_clear_all(
     for state in ("pending", "saved"):
         for meta in storage.list(user_id, state):
             storage.delete(user_id, meta["file_id"])
-    return templates.TemplateResponse("partials/_dashboard.html", {
-        "request": request, "pending": [], "saved": [],
+    return templates.TemplateResponse(request, "partials/_dashboard.html", {
+        "pending": [], "saved": [],
     })
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def _dash_ctx(request: Request, user_id: str, storage: StorageBackend) -> dict:
+def _dash_ctx(user_id: str, storage: StorageBackend) -> dict:
     return {
-        "request": request,
         "pending": storage.list(user_id, "pending"),
         "saved":   storage.list(user_id, "saved"),
     }
