@@ -345,14 +345,10 @@ Do not push a commit that has failing tests.
 
 ---
 
-## Useful commands (fill in as scripts are created)
+## Useful commands
 
-```
-# (placeholder — add real commands as they exist)
-# ./scripts/build.sh          — build all containers
-# ./scripts/run-dev.sh        — docker-compose up for local dev
-# ./scripts/run-cdr-tests.sh  — CDR correctness + re-validation tests
-# ./scripts/run-security-tests.sh — sandbox hardening verification
+```sh
+python -m pytest --tb=short -q   # run from backend/
 ```
 
 ---
