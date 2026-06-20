@@ -89,6 +89,59 @@ the commercial terms. Set up the CLA before accepting the first external PR.
 - **In-memory processing (tmpfs).** Never write the original to disk, even inside the
   sandbox. In-memory = no traces. Sandbox = containment. Both required.
 
+### Metadata minimization
+
+**Rule: store the minimum required to serve the file and display the CDR report.
+If a field describes the original file or the network context of the request, drop it.
+This applies everywhere — JSON sidecars, logs, database rows, API responses.**
+
+The JSON sidecar (`{file_id}.json`) contains exactly these fields and nothing else:
+
+| Field | Kept | Reason |
+|---|---|---|
+| `file_id` | ✅ | Primary key |
+| `user_id` | ✅ | Ownership |
+| `source` | ✅ | Security claim display (`telegram_bot` / `share_sheet`) |
+| `source_format` | ✅ | CDR transparency — what format was input |
+| `stripped` | ✅ | Core feature — what metadata categories were removed |
+| `output_format` | ✅ | Always `png` — CDR correctness |
+| `dimensions` | ✅ | Output image dimensions for UI layout |
+| Original filename | ❌ | Reveals content / user intent |
+| Original file size (`size_in`) | ❌ | Fingerprints the original |
+| Clean file size (`size_out`) | ❌ | Derivable from the file itself |
+| Timestamp / `created_at` | ❌ | Behavioral metadata — when the user was active |
+| IP address / user agent | ❌ | Network metadata — never log, never store |
+| Telegram message ID / chat ID | ❌ | Communication metadata |
+
+File ordering in the list view uses filesystem mtime (implicit, unavoidable) rather
+than a stored timestamp — no extra privacy surface added.
+
+This rule must not be relaxed to add convenience fields. If a field is needed for
+the app to function, add it here with justification. If it is only nice to have, drop it.
+
+### Platform support
+
+**Self-hosted (v1):** Must install and run without modification on:
+- Ubuntu 22.04 LTS and later
+- Debian 12 (Bookworm) and later
+- Fedora 39 and later
+
+**Cloud (v2):** Must run on:
+- Ubuntu Server 22.04 LTS and later
+- Debian 12 (Bookworm) and later
+
+**Rules that follow from this:**
+- Use only packages available in the default repos of all three distros, or install
+  via pip/npm — never assume a distro-specific package manager feature.
+- `libvips` must be installable on all three: it is in Ubuntu/Debian (`libvips-dev`)
+  and Fedora (`vips-devel`). Use the correct package name per distro in docs/scripts.
+- Docker is the delivery mechanism; the host only needs Docker + Docker Compose.
+  The containers are Debian-slim-based (consistent regardless of host distro).
+- Shell scripts must be POSIX-compatible (`#!/bin/sh`) unless a bash-specific feature
+  is genuinely required, in which case mark it `#!/bin/bash` and document why.
+- Do not use `apt-get` in scripts without a Fedora/`dnf` fallback, or wrap installs
+  inside the Docker build so the host distro never matters for dependencies.
+
 ### Security claims — what we say and don't say
 
 - **Telegram path:** "The original never travels through your device." TRUE
@@ -250,6 +303,19 @@ Frontend reads `GUARDBOX_API_URL` from env and calls only these endpoints. It ne
 talks to storage, the bot, or the sandbox directly.
 
 ---
+
+## Development workflow
+
+**Every feature, in order, every time:**
+
+1. Write the code.
+2. Write unit tests that cover the new behaviour.
+3. Run the full test suite — `pytest` from the repo root. All tests must pass before moving on.
+4. Commit with a clear message.
+5. Push the commit to the remote repo (`git push`).
+
+Do not start the next feature until the current one is committed, pushed, and green.
+Do not push a commit that has failing tests.
 
 ## Build order
 

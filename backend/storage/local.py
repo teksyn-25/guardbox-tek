@@ -54,7 +54,7 @@ class LocalStorage(StorageBackend):
         folder = self.root / state / user_id
         if not folder.exists():
             return []
-        return [json.loads(p.read_text()) for p in sorted(folder.glob("*.json"))]
+        return [json.loads(p.read_text()) for p in sorted(folder.glob("*.json"), key=lambda p: p.stat().st_mtime)]
 
     def get(self, user_id: str, file_id: str) -> tuple[bytes, dict]:
         state = self._locate(user_id, file_id)

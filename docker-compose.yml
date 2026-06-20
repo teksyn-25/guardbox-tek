@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: ./backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file: .env
+    volumes:
+      - guardbox_data:/data/guardbox
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_GUARDBOX_API_URL: "${VITE_GUARDBOX_API_URL:-http://localhost:8000}"
+        VITE_TELEGRAM_BOT_ID: "${VITE_TELEGRAM_BOT_ID}"
+    ports:
+      - "127.0.0.1:3000:80"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  guardbox_data:
