@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="login-page">
+  <!-- GuardBox cube mark -->
+  <svg width="52" height="52" viewBox="0 0 48 48" fill="none">
+    <path d="M24 6L40 14V34L24 42L8 34V14L24 6Z" fill="#0a2421" stroke="var(--safe)" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M24 6V24M24 24L40 14M24 24L8 14M24 24V42" stroke="var(--safe)" stroke-width="1.4" stroke-linejoin="round"/>
+  </svg>
+
+  <div style="font-family:var(--fd);font-weight:700;font-size:28px;letter-spacing:-.02em;">
+    Guard<b style="color:var(--safe)">Box</b>
+  </div>
+
+  <p class="login-desc">
+    CDR-sanitised files from Telegram and WhatsApp — originals never touch your device.
+  </p>
+
+  {% if error %}
+  <div class="err-box">{{ error }}</div>
+  {% endif %}
+
+  <a href="/auth/login" class="btn-tg">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M12 3l8 3v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6l8-3z" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Continue with Telegram
+  </a>
+</div>
+{% endblock %}

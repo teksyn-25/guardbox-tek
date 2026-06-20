@@ -1,17 +1,24 @@
 """
 Session token middleware.
 
-Tokens are HMAC-signed with SESSION_SECRET (itsdangerous URLSafeTimedSerializer).
-Step 5 (Login with Telegram) calls sign_token() and returns the token to the client.
-All protected endpoints use require_user as a FastAPI dependency.
+Tokens are HMAC-signed (itsdangerous URLSafeTimedSerializer).
+Accepted from:
+  - Authorization: Bearer <token>   — Capacitor / REST API clients
+  - Cookie: gb_session=<token>      — browser (HttpOnly, SameSite=Strict)
+
+SESSION_SECRET   — required env var, signs tokens.
+SESSION_SECURE_COOKIE — set to "false" only for local HTTP dev (default: true).
 """
 
 import os
 
-from fastapi import Header, HTTPException
+from fastapi import Cookie, Header, HTTPException
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_MAX_AGE    = 60 * 60 * 24 * 30   # 30 days
+SESSION_SECURE     = os.getenv("SESSION_SECURE_COOKIE", "true").lower() == "true"
+
+_MAX_AGE = SESSION_MAX_AGE
 
 
 def _signer() -> URLSafeTimedSerializer:
@@ -29,10 +36,15 @@ def verify_token(token: str) -> str:
         raise HTTPException(status_code=401, detail="Invalid or expired session token")
 
 
-async def require_user(authorization: str | None = Header(default=None, alias="Authorization")) -> str:
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Bearer token required")
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Bearer token required")
-    return verify_token(token)
+async def require_user(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    gb_session:    str | None = Cookie(default=None),
+) -> str:
+    """FastAPI dependency — accepts Bearer header (API) or HttpOnly cookie (web)."""
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() == "bearer":
+            return verify_token(token)
+    if gb_session:
+        return verify_token(gb_session)
+    raise HTTPException(status_code=401, detail="Authentication required")

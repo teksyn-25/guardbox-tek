@@ -1,0 +1,54 @@
+{% set label = source_label.get(source, source) %}
+
+<div class="rise" style="display:flex;flex-direction:column;gap:14px;margin-top:26px">
+
+  <button class="btn-outline" style="width:fit-content;padding:7px 14px;font-size:13px;display:flex;align-items:center;gap:6px"
+          hx-get="/"
+          hx-target="#main-content"
+          hx-swap="innerHTML">
+    ← Back
+  </button>
+
+  <h2 style="font-family:var(--fd);font-weight:600;font-size:18px">
+    {{ label }}
+    <span style="color:var(--ink-faint);font-family:var(--fm);font-size:13px;font-weight:400;margin-left:6px">{{ files | length }}</span>
+  </h2>
+
+  {% if not files %}
+  <div class="empty">
+    No images from {{ label }} yet.
+    {% if source == "telegram_bot" %}
+    <div style="margin-top:8px">Forward an image to <b>@GuardBoxBot</b>.</div>
+    {% elif source == "share_sheet" %}
+    <div style="margin-top:8px">Share an image to GuardBox from WhatsApp.</div>
+    {% endif %}
+  </div>
+
+  {% else %}
+  {% for file in files %}
+  {% set hue = file_hue(file.file_id) %}
+  <button class="file-card"
+          hx-get="/files/{{ file.file_id }}/viewer"
+          hx-target="#viewer-slot"
+          hx-swap="innerHTML"
+          @click="viewerOpen = true">
+    <!-- thumbnail -->
+    <div class="thumb" style="background:linear-gradient(135deg,hsl({{ hue }} 50% 40%),hsl({{ (hue+60) % 360 }} 45% 26%))">
+      <span style="position:absolute;top:4px;left:4px;width:7px;height:7px;border-top:1.5px solid var(--safe);border-left:1.5px solid var(--safe)"></span>
+      <span style="position:absolute;bottom:4px;right:4px;width:7px;height:7px;border-bottom:1.5px solid var(--safe);border-right:1.5px solid var(--safe)"></span>
+    </div>
+    <!-- info -->
+    <div style="flex:1;min-width:0">
+      <div class="file-name">file-{{ file.file_id[:8] }}.png</div>
+      <div class="file-fmt">{{ file.source_format | upper }} → PNG</div>
+      <div class="file-stripped">
+        <span class="dot"></span>
+        {{ file.stripped | length }} stripped
+      </div>
+    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  {% endfor %}
+  {% endif %}
+
+</div>

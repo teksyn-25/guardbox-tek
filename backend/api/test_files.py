@@ -66,16 +66,16 @@ def _meta(file_id: str, user_id: str = _USER) -> dict:
 # ── auth guard ────────────────────────────────────────────────────────────────
 
 def test_no_auth_header_returns_401(client):
-    assert client.get("/files?state=pending").status_code == 401
+    assert client.get("/api/files?state=pending").status_code == 401
 
 
 def test_invalid_token_returns_401(client):
-    r = client.get("/files?state=pending", headers={"Authorization": "Bearer garbage"})
+    r = client.get("/api/files?state=pending", headers={"Authorization": "Bearer garbage"})
     assert r.status_code == 401
 
 
 def test_wrong_scheme_returns_401(client):
-    r = client.get("/files?state=pending", headers={"Authorization": "Basic dXNlcjpwYXNz"})
+    r = client.get("/api/files?state=pending", headers={"Authorization": "Basic dXNlcjpwYXNz"})
     assert r.status_code == 401
 
 
@@ -83,12 +83,12 @@ def test_wrong_scheme_returns_401(client):
 
 def test_list_pending_returns_200(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    assert client.get("/files?state=pending", headers=auth).status_code == 200
+    assert client.get("/api/files?state=pending", headers=auth).status_code == 200
 
 
 def test_list_pending_returns_list(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    r = client.get("/files?state=pending", headers=auth)
+    r = client.get("/api/files?state=pending", headers=auth)
     assert isinstance(r.json(), list)
 
 
@@ -96,23 +96,23 @@ def test_list_returns_only_matching_state(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("p1"))
     storage.save(_USER, tiny_png, _meta("s1"))
     storage.move(_USER, "s1", "saved")
-    r = client.get("/files?state=pending", headers=auth)
+    r = client.get("/api/files?state=pending", headers=auth)
     ids = [m["file_id"] for m in r.json()]
     assert ids == ["p1"]
 
 
 def test_list_empty_returns_empty_list(client, auth):
-    r = client.get("/files?state=pending", headers=auth)
+    r = client.get("/api/files?state=pending", headers=auth)
     assert r.json() == []
 
 
 def test_list_invalid_state_returns_422(client, auth):
-    assert client.get("/files?state=infected", headers=auth).status_code == 422
+    assert client.get("/api/files?state=infected", headers=auth).status_code == 422
 
 
 def test_list_isolates_users(client, storage, auth, tiny_png):
     storage.save(_OTHER, tiny_png, _meta("other_file", user_id=_OTHER))
-    r = client.get("/files?state=pending", headers=auth)
+    r = client.get("/api/files?state=pending", headers=auth)
     ids = [m["file_id"] for m in r.json()]
     assert "other_file" not in ids
 
@@ -121,72 +121,72 @@ def test_list_isolates_users(client, storage, auth, tiny_png):
 
 def test_get_metadata_returns_200(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    assert client.get("/files/f1", headers=auth).status_code == 200
+    assert client.get("/api/files/f1", headers=auth).status_code == 200
 
 
 def test_get_metadata_returns_correct_file_id(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    r = client.get("/files/f1", headers=auth)
+    r = client.get("/api/files/f1", headers=auth)
     assert r.json()["file_id"] == "f1"
 
 
 def test_get_metadata_nonexistent_returns_404(client, auth):
-    assert client.get("/files/no_such_file", headers=auth).status_code == 404
+    assert client.get("/api/files/no_such_file", headers=auth).status_code == 404
 
 
 # ── GET /files/{id}/image ─────────────────────────────────────────────────────
 
 def test_get_image_returns_200(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    assert client.get("/files/f1/image", headers=auth).status_code == 200
+    assert client.get("/api/files/f1/image", headers=auth).status_code == 200
 
 
 def test_get_image_content_type_is_png(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    r = client.get("/files/f1/image", headers=auth)
+    r = client.get("/api/files/f1/image", headers=auth)
     assert r.headers["content-type"] == "image/png"
 
 
 def test_get_image_bytes_start_with_png_magic(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    r = client.get("/files/f1/image", headers=auth)
+    r = client.get("/api/files/f1/image", headers=auth)
     assert r.content[:8] == _PNG_MAGIC
 
 
 def test_get_image_nonexistent_returns_404(client, auth):
-    assert client.get("/files/no_such/image", headers=auth).status_code == 404
+    assert client.get("/api/files/no_such/image", headers=auth).status_code == 404
 
 
 # ── POST /files/{id}/save ─────────────────────────────────────────────────────
 
 def test_save_returns_204(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    assert client.post("/files/f1/save", headers=auth).status_code == 204
+    assert client.post("/api/files/f1/save", headers=auth).status_code == 204
 
 
 def test_save_moves_file_to_saved(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    client.post("/files/f1/save", headers=auth)
+    client.post("/api/files/f1/save", headers=auth)
     saved_ids = [m["file_id"] for m in storage.list(_USER, "saved")]
     assert "f1" in saved_ids
 
 
 def test_save_nonexistent_returns_404(client, auth):
-    assert client.post("/files/no_such/save", headers=auth).status_code == 404
+    assert client.post("/api/files/no_such/save", headers=auth).status_code == 404
 
 
 # ── DELETE /files/{id} ───────────────────────────────────────────────────────
 
 def test_delete_returns_204(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    assert client.delete("/files/f1", headers=auth).status_code == 204
+    assert client.delete("/api/files/f1", headers=auth).status_code == 204
 
 
 def test_delete_file_is_gone(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
-    client.delete("/files/f1", headers=auth)
-    assert client.get("/files/f1", headers=auth).status_code == 404
+    client.delete("/api/files/f1", headers=auth)
+    assert client.get("/api/files/f1", headers=auth).status_code == 404
 
 
 def test_delete_nonexistent_returns_404(client, auth):
-    assert client.delete("/files/no_such", headers=auth).status_code == 404
+    assert client.delete("/api/files/no_such", headers=auth).status_code == 404

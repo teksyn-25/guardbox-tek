@@ -31,7 +31,7 @@ class TelegramLoginPayload(BaseModel):
     hash: str
 
 
-def _verify_telegram_hash(payload: TelegramLoginPayload) -> None:
+def verify_telegram_hash(payload: TelegramLoginPayload) -> None:
     """
     Telegram Login Widget hash check.
     https://core.telegram.org/widgets/login#checking-authorization
@@ -52,6 +52,6 @@ def _verify_telegram_hash(payload: TelegramLoginPayload) -> None:
 
 @router.post("/auth")
 def login(payload: TelegramLoginPayload) -> dict:
-    _verify_telegram_hash(payload)
+    verify_telegram_hash(payload)
     token = sign_token(str(payload.id))
     return {"token": token}

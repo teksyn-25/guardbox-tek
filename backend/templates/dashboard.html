@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block body %}
+<div x-data="{ viewerOpen: false }" id="app">
+  <div class="wrap">
+
+    <!-- header -->
+    <header class="hdr">
+      <span class="syncing" style="justify-self:start">syncing…</span>
+
+      <div class="hdr-logo">
+        <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
+          <path d="M24 6L40 14V34L24 42L8 34V14L24 6Z" fill="#0a2421" stroke="var(--safe)" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M24 6V24M24 24L40 14M24 24L8 14M24 24V42" stroke="var(--safe)" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+        <div class="wordmark">Guard<b>Box</b></div>
+      </div>
+
+      <form method="post" action="/auth/logout" style="justify-self:end">
+        <button type="submit" class="btn-outline">Log out</button>
+      </form>
+    </header>
+
+    <!-- main content — swapped by HTMX on navigation / mutations -->
+    <div id="main-content" hx-indicator="#app">
+      {% include "partials/_dashboard.html" %}
+    </div>
+
+  </div><!-- .wrap -->
+
+  <!-- floating action button -->
+  <button class="fab" aria-label="Add"
+    title="Forward an image to @GuardBoxBot on Telegram, or share from WhatsApp">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5v14M5 12h14" stroke="#04231a" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <!-- viewer overlay — Alpine controls visibility -->
+  <div class="overlay" x-cloak x-show="viewerOpen"
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       @click="viewerOpen = false">
+    <div class="sheet" @click.stop>
+      <div class="handle"></div>
+      <div id="viewer-slot"></div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+{% endblock %}

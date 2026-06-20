@@ -233,16 +233,12 @@ guardbox/
 ├── CLAUDE.md                          ← you are here
 ├── docs/
 │   └── guardbox-portability-rules.md  ← full portability rules + decisions log
-├── frontend/                          ← React app + Capacitor shell
-│   ├── src/
-│   ├── android/
-│   ├── ios/
-│   └── .env.template                  ← GUARDBOX_API_URL=
 ├── backend/
-│   ├── api/                           ← HTTPS/REST endpoints (the only thing frontend calls)
-│   │   ├── auth.py                    ← Login with Telegram
-│   │   ├── files.py                   ← GET/POST/DELETE file endpoints
-│   │   └── middleware.py              ← session token check
+│   ├── api/                           ← REST endpoints (/api/*) + web HTML routes
+│   │   ├── auth.py                    ← Login with Telegram (REST)
+│   │   ├── files.py                   ← GET/POST/DELETE file endpoints (REST)
+│   │   ├── middleware.py              ← session token check (Bearer + HttpOnly cookie)
+│   │   └── web.py                     ← HTMX web UI routes (HTML responses)
 │   ├── intake/
 │   │   ├── telegram_bot.py            ← Telegram bot adapter (server-to-server)
 │   │   └── upload.py                  ← WhatsApp/share-sheet upload endpoint
@@ -252,9 +248,11 @@ guardbox/
 │   │   ├── interface.py               ← 5 operations: save/list/get/delete/move
 │   │   ├── local.py                   ← KVM disk + JSON sidecars (self-hosted)
 │   │   └── cloud.py                   ← S3 + Postgres (paid cloud)
-│   ├── .env.template                  ← BOT_TOKEN=, STORAGE_BACKEND=, S3_ENDPOINT=, etc.
+│   ├── templates/                     ← Jinja2 templates (base.html, dashboard, partials)
+│   ├── static/                        ← self-hosted JS: htmx.min.js, alpine.min.js
+│   ├── .env.template                  ← BOT_TOKEN=, TELEGRAM_BOT_ID=, GUARDBOX_BASE_URL=, etc.
 │   └── Dockerfile
-└── docker-compose.yml                 ← runs frontend + backend + (MinIO if needed)
+└── docker-compose.yml                 ← one-command self-hosted install
 ```
 
 ---
@@ -264,7 +262,7 @@ guardbox/
 ```
 TELEGRAM PATH                         WHATSAPP PATH
 User → @GuardBoxBot                   User → Share sheet → Capacitor app
-      | (server-to-server)                   | (POST /files/upload)
+      | (server-to-server)                   | (POST /api/files/upload)
       +──────────────┬──────────────────────+
                      v
             CDR Sandbox (hardened Docker)
@@ -275,7 +273,7 @@ User → @GuardBoxBot                   User → Share sheet → Capacitor app
         STORAGE_BACKEND=local       STORAGE_BACKEND=cloud
         KVM disk + JSON sidecars    S3 + Postgres
                      v
-            API → React viewer → Save / Delete
+            API → HTMX web UI → Save / Delete
 ```
 
 Both paths produce `{ file_bytes, user_id, source }` and feed the same `cdr/sanitize()`
@@ -286,21 +284,38 @@ per-platform security claim.
 
 ---
 
-## API contract (frontend ↔ backend)
+## API contract (REST — Capacitor / mobile clients)
+
+All REST endpoints live under `/api/`. The web UI (HTMX + Jinja2) is served at `/`
+and uses the same backend logic but returns HTML instead of JSON.
 
 | Endpoint | Who calls it | Purpose |
 |---|---|---|
-| `POST /auth` | Frontend | Login with Telegram, return session token |
-| `POST /files/upload` | Capacitor app | Upload file for scanning (WhatsApp path) |
-| `GET /files?state=pending` | Frontend | List user's pending images |
-| `GET /files?state=saved` | Frontend | List user's saved images |
-| `GET /files/{id}` | Frontend | CDR metadata (what was stripped) |
-| `GET /files/{id}/image` | Frontend | Stream the clean PNG |
-| `POST /files/{id}/save` | Frontend | Move pending → saved |
-| `DELETE /files/{id}` | Frontend | Remove file |
+| `POST /api/auth` | Capacitor app | Login with Telegram, return session token |
+| `POST /api/files/upload` | Capacitor app | Upload file for scanning (WhatsApp path) |
+| `GET /api/files?state=pending` | Capacitor app | List user's pending images |
+| `GET /api/files?state=saved` | Capacitor app | List user's saved images |
+| `GET /api/files/{id}` | Capacitor app | CDR metadata (what was stripped) |
+| `GET /api/files/{id}/image` | Capacitor / browser | Stream the clean PNG |
+| `POST /api/files/{id}/save` | Capacitor app | Move pending → saved |
+| `DELETE /api/files/{id}` | Capacitor app | Remove file |
 
-Frontend reads `GUARDBOX_API_URL` from env and calls only these endpoints. It never
-talks to storage, the bot, or the sandbox directly.
+**Web UI routes (HTMX — return HTML partials):**
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /auth/login` | Redirect to Telegram OAuth |
+| `GET /auth/callback?tgAuthResult=` | Verify hash, set HttpOnly cookie, redirect `/` |
+| `POST /auth/logout` | Clear cookie, redirect login |
+| `GET /` | Dashboard (full page or HTMX partial) |
+| `GET /folder/{source}` | Folder partial (HTMX only) |
+| `GET /files/{id}/viewer` | Viewer partial (HTMX only) |
+| `POST /files/{id}/save` | Save file, return updated dashboard partial |
+| `DELETE /files/{id}` | Delete file, return updated dashboard partial |
+| `DELETE /files` | Delete all files, return updated dashboard partial |
+
+Capacitor reads `GUARDBOX_API_URL` from env and calls only the `/api/*` endpoints.
+It never talks to storage, the bot, or the sandbox directly.
 
 ---
 

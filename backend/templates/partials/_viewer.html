@@ -1,0 +1,83 @@
+{% set hue = file_hue(file.file_id) %}
+{% set label = source_label.get(file.source, file.source) %}
+
+{% if file.source == "telegram_bot" %}
+  {% set claim = "GuardBox receives the file directly from Telegram's servers — it never travels through your device. You view a screenshot of the reconstructed clean copy in the app — the file itself never travels to your phone." %}
+{% else %}
+  {% set claim = "GuardBox doesn't save the original to your gallery, doesn't keep it in GuardBox's own storage, and doesn't decode it on your phone. WhatsApp briefly holds it in its own private storage in order to share it — that part is outside GuardBox's control. You view a screenshot of the reconstructed clean copy in the app — the file itself is never sent to your phone." %}
+{% endif %}
+
+<div style="padding:0 18px">
+  <!-- label bar -->
+  <div class="viewer-label">
+    <span>CONTAINMENT VIEW</span>
+    <span style="color:var(--safe)">● SAFE COPY</span>
+  </div>
+
+  <!-- containment frame with actual sanitised image -->
+  <div class="cframe" x-data="{ revealed: false }" x-init="setTimeout(() => revealed = true, 450)">
+    <div class="cframe-scan" x-show="!revealed"></div>
+    <p  class="cframe-txt"  x-show="!revealed">reconstructing pixels…</p>
+    <img src="/api/files/{{ file.file_id }}/image"
+         :style="{ opacity: revealed ? 1 : 0 }"
+         style="opacity:0"
+         alt="Sanitised image">
+    <!-- corner brackets -->
+    <span class="corner" style="top:8px;left:8px;border-top:2px solid var(--safe);border-left:2px solid var(--safe)"></span>
+    <span class="corner" style="top:8px;right:8px;border-top:2px solid var(--safe);border-right:2px solid var(--safe)"></span>
+    <span class="corner" style="bottom:8px;left:8px;border-bottom:2px solid var(--safe);border-left:2px solid var(--safe)"></span>
+    <span class="corner" style="bottom:8px;right:8px;border-bottom:2px solid var(--safe);border-right:2px solid var(--safe)"></span>
+  </div>
+
+  <div style="font-weight:600;font-size:15px;margin-top:14px;font-family:var(--fm);color:var(--ink-dim)">
+    file-{{ file.file_id[:8] }}.png
+  </div>
+</div>
+
+<!-- metadata table -->
+<div class="kv-table">
+  <div class="kv">
+    <span class="kv-k">ORIGIN</span>
+    <span class="kv-v">forwarded via {{ label }}</span>
+  </div>
+  <div class="kv">
+    <span class="kv-k">METHOD</span>
+    <span class="kv-v kv-accent">Content Disarm &amp; Reconstruction</span>
+  </div>
+  <div class="kv">
+    <span class="kv-k">PIPELINE</span>
+    <span class="kv-v kv-mono">{{ file.source_format | upper }} → PNG · decoded in sandbox · rebuilt fresh</span>
+  </div>
+  <div class="stripped-box">
+    <div class="stripped-lbl">STRIPPED ({{ file.stripped | length }})</div>
+    <div class="chips">
+      {% if not file.stripped %}
+      <span style="font-family:var(--fm);font-size:11px;color:var(--ink-faint)">none detected</span>
+      {% else %}
+      {% for s in file.stripped %}
+      <span class="chip">− {{ s }}</span>
+      {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div style="padding:0 18px">
+  <p class="claim">{{ claim }}</p>
+  <div class="viewer-acts">
+    <button class="btn-del"
+            hx-delete="/files/{{ file.file_id }}"
+            hx-target="#main-content"
+            hx-swap="innerHTML"
+            @click="viewerOpen = false">
+      Delete now
+    </button>
+    <button class="btn-save"
+            hx-post="/files/{{ file.file_id }}/save"
+            hx-target="#main-content"
+            hx-swap="innerHTML"
+            @click="viewerOpen = false">
+      Save
+    </button>
+  </div>
+</div>

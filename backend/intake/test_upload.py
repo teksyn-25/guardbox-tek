@@ -51,7 +51,7 @@ def tiny_jpeg():
 
 def _upload(client, auth, data: bytes, filename="test.jpg"):
     return client.post(
-        "/files/upload",
+        "/api/files/upload",
         headers=auth,
         files={"file": (filename, io.BytesIO(data), "image/jpeg")},
     )
@@ -117,7 +117,7 @@ def test_upload_does_not_store_timestamp(client, auth, storage, tiny_jpeg):
 
 def test_upload_without_auth_returns_401(client, tiny_jpeg):
     r = client.post(
-        "/files/upload",
+        "/api/files/upload",
         files={"file": ("x.jpg", io.BytesIO(tiny_jpeg), "image/jpeg")},
     )
     assert r.status_code == 401
