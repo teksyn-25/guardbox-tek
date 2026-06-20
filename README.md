@@ -1,0 +1,219 @@
+# GuardBox
+
+**A sandboxed container for WhatsApp, Telegram, Signal, Messenger and email.**
+
+Files and images are redirected and opened inside a single-use cloud sandbox, the moment they arrive — far from your device. The exploit isolates in the box.
+
+GuardBox intercepts a file before any app on your device decodes it. It runs the file through a CDR (Content Disarm & Reconstruction) pipeline inside an isolated sandbox — stripping metadata, exploits, and hidden payloads — and returns a clean reconstructed copy. Your device never sees the original.
+
+**Open-core · AGPL-3.0 · EU-hosted · Built in Stockholm**
+
+---
+
+## How it works
+
+```
+Incoming file (Telegram / WhatsApp)
+        │
+        ▼
+  GuardBox sandbox
+  ┌─────────────────────────────┐
+  │  1. Identify from magic     │
+  │     bytes (not extension)   │
+  │  2. Decode in memory        │
+  │  3. Strip all metadata      │
+  │     (EXIF, XMP, GPS…)       │
+  │  4. Re-encode as clean PNG  │
+  └─────────────────────────────┘
+        │
+        ▼
+  Clean image — safe to view
+```
+
+The original file is never written to disk, never decoded on your device, never passed to another app. You view a screenshot of the reconstructed copy — nothing else reaches you.
+
+---
+
+## v1 — Self-hosted
+
+**Supported intake paths in v1:**
+- **Telegram** — forward any image to your GuardBox bot. It is fetched server-to-server, sanitised, and appears in your dashboard. Your device never touches the original.
+- **WhatsApp** — via the GuardBox mobile app (Capacitor, coming in v1.1).
+
+**What you get:**
+- A hardened Docker container running the CDR pipeline
+- A web dashboard accessible over HTTP on your local machine or network
+- Login via your Telegram account (no password, no email)
+- Zero retention by default — delete anytime
+
+> **Self-hosted runs over HTTP.** Since you control the machine, there is no third party in the path and no need for TLS between your browser and localhost. The Telegram bot connection is always server-to-server and is handled by Telegram's own TLS.
+
+---
+
+## Requirements
+
+- A Linux machine (Fedora 39+, Ubuntu 22.04+, or Debian 12+)
+- Docker CE + Docker Compose plugin
+- A Telegram account to create a bot
+
+---
+
+## Installation
+
+### 1. Install Docker
+
+**Fedora:**
+```sh
+sudo dnf -y install dnf-plugins-core
+sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**Ubuntu / Debian:**
+```sh
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### 2. Get the code
+
+```sh
+git clone https://github.com/teksyn-25/guardbox-tek.git guardbox
+cd guardbox
+```
+
+### 3. Create your Telegram bot
+
+1. Open Telegram and message **@BotFather**
+2. Send `/newbot` and follow the prompts
+3. Copy the **bot token** (looks like `123456789:ABCdef...`)
+4. The **bot's numeric ID** is the number before the colon in the token
+
+### 4. Configure
+
+```sh
+cp backend/.env.template .env
+```
+
+Edit `.env`:
+
+```sh
+BOT_TOKEN=123456789:ABCdef...          # from @BotFather
+TELEGRAM_BOT_ID=123456789             # numeric part of the token (before the colon)
+GUARDBOX_BASE_URL=http://localhost:8000
+SESSION_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+
+STORAGE_BACKEND=local
+STORAGE_ROOT=/data/guardbox
+
+SESSION_SECURE_COOKIE=false            # HTTP is fine for self-hosted
+```
+
+### 5. Build and run
+
+```sh
+./scripts/build.sh
+docker compose up -d
+```
+
+### 6. Open the dashboard
+
+Go to **http://localhost:8000** in your browser.
+Click **Log in with Telegram** — confirms in your Telegram app and redirects back.
+
+### 7. Forward an image
+
+In Telegram, forward any image to your bot (`@YourBotName`).
+It appears in your dashboard within seconds — clean, metadata-stripped, safe to view.
+
+---
+
+## Updating
+
+```sh
+git pull
+docker compose build --no-cache
+docker compose up -d
+```
+
+---
+
+## Exposing over HTTPS (optional)
+
+If you want GuardBox accessible from outside your local machine (remote server, VPS), put it behind a reverse proxy with TLS. **Caddy** handles certificate renewal automatically:
+
+```sh
+# Fedora
+sudo dnf install caddy
+# Ubuntu / Debian
+sudo apt-get install caddy
+```
+
+`/etc/caddy/Caddyfile`:
+```
+yourdomain.com {
+    reverse_proxy 127.0.0.1:8000
+}
+```
+
+Then in `.env` update:
+```sh
+GUARDBOX_BASE_URL=https://yourdomain.com
+SESSION_SECURE_COOKIE=true
+```
+
+```sh
+sudo systemctl enable --now caddy
+docker compose up -d
+```
+
+---
+
+## Security
+
+- **Sandboxed container:** `cap_drop: ALL`, `no-new-privileges`, read-only root filesystem, custom seccomp profile, tmpfs-only writes
+- **Metadata stripped:** EXIF, XMP, GPS and all embedded metadata removed from every file
+- **No retention by default:** files stay in `pending` until you explicitly save or delete them
+- **HttpOnly cookie:** session token is never accessible to JavaScript
+- **Non-root process:** container runs as a dedicated `guardbox` system user
+- **Localhost-only binding:** Docker binds to `127.0.0.1:8000` — not reachable from the network unless you explicitly expose it
+
+### What GuardBox does not claim
+
+- Does not claim end-to-end encryption (GuardBox must read the file to sanitise it)
+- Does not claim zero-click protection (GuardBox enters the path only when you forward a file)
+- Telegram path: the original *may* briefly cache in Telegram's private app sandbox during the forward action depending on client version — this is outside GuardBox's control
+
+---
+
+## Self-hosted vs. cloud
+
+| | Self-hosted (v1) | Cloud (v2) |
+|---|---|---|
+| Transport | HTTP (localhost) | HTTPS |
+| Storage | Files on disk + JSON sidecars | S3 + Postgres |
+| Database | None | Postgres |
+| CDR engine | Python + libvips | Rust (via PyO3) |
+| Sandbox | Hardened Docker | Kata + Firecracker |
+| License | AGPL-3.0 | Commercial license available |
+
+---
+
+## License
+
+AGPL-3.0. See [LICENSE](LICENSE).
+Commercial license available for enterprise deployments — contact guardboxlabs@protonmail.com.
+
+A Contributor License Agreement (CLA) is required for external contributions.
