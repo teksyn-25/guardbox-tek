@@ -14,33 +14,63 @@ import 'package:guardbox/theme.dart';
 
 class _MockApiClient extends Mock implements ApiClient {}
 
-// ── method channel mocks ──────────────────────────────────────────────────────
+// ── FilePicker fake ───────────────────────────────────────────────────────────
+// FilePicker.platform is a late static that is never initialised during tests
+// (no plugin registration). Subclass and inject via FilePicker.platform = ...
+
+class _FakeFilePicker extends FilePicker {
+  _FakeFilePicker({required this.bytes});
+  final Uint8List? bytes; // null → simulate cancel
+
+  @override
+  Future<FilePickerResult?> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    bool allowCompression = true,
+    int compressionQuality = 30,
+    bool allowMultiple = false,
+    bool withData = false,
+    bool withReadStream = false,
+    bool lockParentWindow = false,
+    bool readSequential = false,
+  }) async {
+    if (bytes == null) return null;
+    return FilePickerResult([
+      PlatformFile(name: 'test.png', size: bytes!.length, bytes: bytes),
+    ]);
+  }
+
+  @override
+  Future<bool?> clearTemporaryFiles() async => true;
+
+  @override
+  Future<String?> getDirectoryPath({
+    String? dialogTitle,
+    String? initialDirectory,
+    bool lockParentWindow = false,
+  }) async => null;
+
+  @override
+  Future<String?> saveFile({
+    String? dialogTitle,
+    String? fileName,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    bool lockParentWindow = false,
+    Uint8List? bytes,
+  }) async => null;
+}
+
+// ── secure storage channel (silenced) ────────────────────────────────────────
 
 const _secureChannel =
     MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-const _filePickerChannel = MethodChannel('miguelruivo.flutter.plugins.filepicker');
 
 final _tinyBytes = Uint8List.fromList([137, 80, 78, 71, 1, 2, 3, 4]);
-
-void _stubFilePicker({bool cancel = false}) {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .setMockMethodCallHandler(_filePickerChannel, (call) async {
-    if (call.method == 'pickFiles') {
-      if (cancel) return null;
-      return {
-        'files': [
-          {
-            'name': 'test.png',
-            'size': _tinyBytes.length,
-            'bytes': _tinyBytes,
-            'path': null,
-          }
-        ],
-      };
-    }
-    return null;
-  });
-}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -60,11 +90,14 @@ void main() {
   setUp(() {
     mockApi = _MockApiClient();
 
-    // silence native channel (config.dart imports FlutterSecureStorage at module level)
+    // default picker: returns _tinyBytes (overridden in cancel test)
+    FilePicker.platform = _FakeFilePicker(bytes: _tinyBytes);
+
+    // silence secure storage native channel
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_secureChannel, (_) async => null);
 
-    // default: listFiles returns empty lists, uploadFile succeeds
+    // default API stubs
     when(() => mockApi.listFiles(any())).thenAnswer((_) async => []);
     when(() => mockApi.uploadFile(any())).thenAnswer((_) async => 'new-id');
   });
@@ -72,8 +105,6 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_secureChannel, null);
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(_filePickerChannel, null);
   });
 
   // ── FAB visible ───────────────────────────────────────────────────────────
@@ -93,7 +124,6 @@ void main() {
   // ── FAB pick + upload ─────────────────────────────────────────────────────
 
   testWidgets('FAB tap calls uploadFile with bytes — no filename', (tester) async {
-    _stubFilePicker();
     await tester.pumpWidget(_app(mockApi));
     await tester.pump();
 
@@ -107,7 +137,6 @@ void main() {
   });
 
   testWidgets('FAB shows spinner during upload', (tester) async {
-    _stubFilePicker();
     // make uploadFile slow so we can observe the in-progress state
     when(() => mockApi.uploadFile(any())).thenAnswer(
         (_) => Future.delayed(const Duration(milliseconds: 100), () => 'id'));
@@ -125,7 +154,6 @@ void main() {
   });
 
   testWidgets('FAB disables during upload (no double-submit)', (tester) async {
-    _stubFilePicker();
     when(() => mockApi.uploadFile(any())).thenAnswer(
         (_) => Future.delayed(const Duration(milliseconds: 100), () => 'id'));
 
@@ -144,7 +172,7 @@ void main() {
   });
 
   testWidgets('cancelling file picker does not call uploadFile', (tester) async {
-    _stubFilePicker(cancel: true);
+    FilePicker.platform = _FakeFilePicker(bytes: null); // simulate cancel
     await tester.pumpWidget(_app(mockApi));
     await tester.pump();
 
@@ -155,7 +183,6 @@ void main() {
   });
 
   testWidgets('upload error shows snackbar', (tester) async {
-    _stubFilePicker();
     when(() => mockApi.uploadFile(any()))
         .thenThrow(const ApiException(415, 'Unsupported file type'));
 
@@ -170,7 +197,6 @@ void main() {
   });
 
   testWidgets('dashboard reloads after successful upload', (tester) async {
-    _stubFilePicker();
     await tester.pumpWidget(_app(mockApi));
     await tester.pump();
 

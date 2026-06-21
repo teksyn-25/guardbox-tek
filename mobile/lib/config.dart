@@ -13,7 +13,7 @@ Future<String?> getServerUrl() async {
 
 Future<void> setServerUrl(String url) async {
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(_keyServerUrl, url.trimRight('/'));
+  await prefs.setString(_keyServerUrl, url.replaceAll(RegExp(r'/+$'), ''));
 }
 
 Future<String?> getToken() async => _secure.read(key: _keyToken);

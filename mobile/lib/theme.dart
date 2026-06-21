@@ -30,7 +30,7 @@ ThemeData guardBoxTheme() => ThemeData(
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: kAccent),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: kCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
