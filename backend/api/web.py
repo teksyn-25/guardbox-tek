@@ -66,10 +66,12 @@ def _set_session(response: Response, token: str) -> None:
 # ── auth ──────────────────────────────────────────────────────────────────────
 
 @router.get("/auth/login")
-async def auth_login() -> RedirectResponse:
+async def auth_login(app: bool = False) -> RedirectResponse:
     bot_id = os.environ["TELEGRAM_BOT_ID"]
     origin = os.environ["GUARDBOX_BASE_URL"].rstrip("/")
     callback = f"{origin}/auth/callback"
+    if app:
+        callback += "?app=1"
     url = (
         f"https://oauth.telegram.org/auth"
         f"?bot_id={bot_id}"
@@ -80,7 +82,7 @@ async def auth_login() -> RedirectResponse:
 
 
 @router.get("/auth/callback")
-async def auth_callback(tgAuthResult: str) -> RedirectResponse:
+async def auth_callback(tgAuthResult: str, app: bool = False) -> RedirectResponse:
     padding = (4 - len(tgAuthResult) % 4) % 4
     try:
         data = json.loads(base64.urlsafe_b64decode(tgAuthResult + "=" * padding))
@@ -88,6 +90,8 @@ async def auth_callback(tgAuthResult: str) -> RedirectResponse:
         raise HTTPException(status_code=400, detail="Invalid auth response")
     verify_telegram_hash(TelegramLoginPayload(**data))
     token = sign_token(str(data["id"]))
+    if app:
+        return RedirectResponse(f"guardbox://auth?token={token}", status_code=302)
     r = RedirectResponse("/", status_code=302)
     _set_session(r, token)
     return r
