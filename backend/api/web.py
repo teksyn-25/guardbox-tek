@@ -10,18 +10,22 @@ REST API remains at /api/* (unchanged for Capacitor).
 import base64
 import json
 import os
+import uuid
 from urllib.parse import quote
 
 from pathlib import Path
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Cookie, Depends, File, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from api.auth import TelegramLoginPayload, verify_telegram_hash
 from api.middleware import SESSION_MAX_AGE, SESSION_SECURE, sign_token, verify_token
+from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
 from storage import get_storage
 from storage.interface import StorageBackend
+
+_MAX_UPLOAD = 25 * 1024 * 1024  # 25 MB
 
 router = APIRouter()
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
@@ -206,6 +210,47 @@ async def web_clear_all(
     return templates.TemplateResponse(request, "partials/_dashboard.html", {
         "pending": [], "saved": [],
     })
+
+
+# ── manual upload (HTMX file-input → FAB) ────────────────────────────────────
+
+@router.post("/upload", response_class=HTMLResponse)
+async def web_upload(
+    request: Request,
+    user_id: str | None = Depends(_optional_user),
+    storage: StorageBackend = Depends(get_storage),
+    file: UploadFile = File(default=None),
+) -> Response:
+    if not user_id:
+        return RedirectResponse("/auth/login", status_code=303)
+    if file is None:
+        return RedirectResponse("/", status_code=303)
+    raw = await file.read(_MAX_UPLOAD + 1)
+    if len(raw) > _MAX_UPLOAD:
+        ctx = {**_dash_ctx(user_id, storage), "error": "File exceeds 25 MB limit."}
+        return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
+    try:
+        clean_bytes, report = sanitize(raw)
+    except UnsupportedFileType:
+        ctx = {**_dash_ctx(user_id, storage), "error": "Unsupported file type. JPEG, PNG, and WebP only."}
+        return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
+    except CorruptedInput:
+        ctx = {**_dash_ctx(user_id, storage), "error": "File appears corrupted and could not be processed."}
+        return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
+    metadata = {
+        "file_id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "source": "share_sheet",
+        "source_format": report["source_format"],
+        "stripped": report["stripped"],
+        "output_format": report["output_format"],
+        "dimensions": report["dimensions"],
+    }
+    storage.save(user_id, clean_bytes, metadata)
+    ctx = _dash_ctx(user_id, storage)
+    if _htmx(request):
+        return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
+    return RedirectResponse("/", status_code=303)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

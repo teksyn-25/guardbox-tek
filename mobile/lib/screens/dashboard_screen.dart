@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../config.dart';
@@ -10,7 +11,15 @@ import 'folder_screen.dart';
 import 'traces_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  /// Production constructor — resolves server URL and token from storage.
+  const DashboardScreen({super.key}) : _testApi = null;
+
+  /// Test-only constructor — injects a pre-built ApiClient, skips storage.
+  @visibleForTesting
+  const DashboardScreen.testable({required ApiClient api, super.key})
+      : _testApi = api;
+
+  final ApiClient? _testApi;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -19,6 +28,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   List<FileItem> _all = [];
   bool _loading = true;
+  bool _uploading = false;
   String? _error;
   ApiClient? _api;
   String _baseUrl = '';
@@ -42,6 +52,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _init() async {
+    if (widget._testApi != null) {
+      setState(() { _api = widget._testApi; });
+      await _load();
+      return;
+    }
     final url = await getServerUrl();
     final tok = await getToken();
     if (url == null || tok == null) {
@@ -133,6 +148,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickAndUpload() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,   // bytes in-memory — no path stored or transmitted
+    );
+    if (result == null || result.files.single.bytes == null) return;
+    final bytes = result.files.single.bytes!;
+    setState(() => _uploading = true);
+    try {
+      await _api!.uploadFile(bytes);
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   @override
@@ -358,8 +394,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
+        onPressed: _uploading ? null : _pickAndUpload,
+        backgroundColor: _uploading ? kCard : kAccent,
+        child: _uploading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: kAccent,
+                ),
+              )
+            : const Icon(Icons.add, color: Color(0xFF04231a)),
       ),
     );
   }

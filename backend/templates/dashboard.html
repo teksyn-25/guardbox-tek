@@ -27,9 +27,24 @@
 
   </div><!-- .wrap -->
 
-  <!-- floating action button -->
-  <button class="fab" aria-label="Add"
-    title="Forward an image to @GuardBoxBot on Telegram, or share from WhatsApp">
+  <!-- hidden upload form — triggered by FAB -->
+  <form id="gb-upload"
+        hx-post="/upload"
+        hx-target="#main-content"
+        hx-swap="innerHTML"
+        hx-encoding="multipart/form-data"
+        hx-indicator=".fab"
+        hx-disabled-elt=".fab"
+        style="position:absolute;width:0;height:0;overflow:hidden">
+    <input type="file" name="file" x-ref="fileInput"
+           accept="image/jpeg,image/png,image/webp"
+           @change="document.getElementById('gb-upload').dispatchEvent(new Event('submit',{bubbles:true}))">
+  </form>
+
+  <!-- floating action button — tap to pick image -->
+  <button class="fab" aria-label="Upload image"
+          @click="$refs.fileInput.click()"
+          title="Pick an image to sanitise">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
       <path d="M12 5v14M5 12h14" stroke="#04231a" stroke-width="2.6" stroke-linecap="round"/>
     </svg>

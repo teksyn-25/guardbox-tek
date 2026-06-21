@@ -7,6 +7,10 @@
 
 <div class="rise" style="display:flex;flex-direction:column;gap:22px;margin-top:26px">
 
+  {% if error %}
+  <div class="err-box">{{ error }}</div>
+  {% endif %}
+
   <!-- stat cards -->
   <div class="stats">
     <div class="stat">

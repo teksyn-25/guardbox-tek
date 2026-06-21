@@ -325,3 +325,103 @@ def test_web_clear_all_removes_all_files(client, session_cookie, storage, tiny_p
 def test_web_clear_all_returns_html(client, session_cookie):
     r = client.delete("/files", cookies=session_cookie)
     assert "text/html" in r.headers["content-type"]
+
+
+# ── POST /upload (manual FAB upload) ─────────────────────────────────────────
+
+def test_upload_without_auth_redirects_to_login(client, tiny_png):
+    r = client.post("/upload", files={"file": ("img.png", tiny_png, "image/png")})
+    assert r.status_code == 303
+    assert "/auth/login" in r.headers["location"]
+
+
+def test_upload_no_file_redirects_home(client, session_cookie):
+    r = client.post("/upload", cookies=session_cookie)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/"
+
+
+def test_upload_valid_png_returns_200(client, session_cookie, tiny_png):
+    r = client.post(
+        "/upload",
+        files={"file": ("img.png", tiny_png, "image/png")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+
+
+def test_upload_valid_png_stores_file(client, session_cookie, storage, tiny_png):
+    client.post(
+        "/upload",
+        files={"file": ("img.png", tiny_png, "image/png")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    assert len(storage.list(_USER, "pending")) == 1
+
+
+def test_upload_source_tagged_share_sheet(client, session_cookie, storage, tiny_png):
+    client.post(
+        "/upload",
+        files={"file": ("img.png", tiny_png, "image/png")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    meta = storage.list(_USER, "pending")[0]
+    assert meta["source"] == "share_sheet"
+
+
+def test_upload_does_not_store_filename(client, session_cookie, storage, tiny_png):
+    client.post(
+        "/upload",
+        files={"file": ("secret-name.png", tiny_png, "image/png")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    meta = storage.list(_USER, "pending")[0]
+    assert "filename" not in meta
+    assert "secret-name" not in str(meta)
+
+
+def test_upload_returns_html(client, session_cookie, tiny_png):
+    r = client.post(
+        "/upload",
+        files={"file": ("img.png", tiny_png, "image/png")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    assert "text/html" in r.headers["content-type"]
+
+
+def test_upload_unsupported_type_returns_error(client, session_cookie):
+    r = client.post(
+        "/upload",
+        files={"file": ("doc.pdf", b"%PDF-1.4 garbage", "application/pdf")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "Unsupported" in r.text
+
+
+def test_upload_too_large_returns_error(client, session_cookie):
+    big = b"\xff\xd8\xff" + b"x" * (25 * 1024 * 1024 + 1)
+    r = client.post(
+        "/upload",
+        files={"file": ("big.jpg", big, "image/jpeg")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "25 MB" in r.text
+
+
+def test_upload_non_htmx_redirects_home(client, session_cookie, tiny_png):
+    r = client.post(
+        "/upload",
+        files={"file": ("img.png", tiny_png, "image/png")},
+        cookies=session_cookie,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == "/"

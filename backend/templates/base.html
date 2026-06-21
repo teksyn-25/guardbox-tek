@@ -129,6 +129,7 @@
 
     /* htmx request indicator */
     .htmx-request .syncing { display:inline; }
+    .htmx-request.fab { opacity:.6; pointer-events:none; }
   </style>
 </head>
 <body hx-on::response-error="if(event.detail.xhr.status===401)window.location='/auth/login'">
