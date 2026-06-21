@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:guardbox/screens/setup_screen.dart';
 import 'package:guardbox/theme.dart';
+
+// flutter_secure_storage uses a native method channel. In widget tests there
+// is no native code, so any call to the channel throws MissingPluginException.
+// setup_screen never calls secure storage methods directly, but importing
+// config.dart brings FlutterSecureStorage into scope. This mock handler
+// silences the channel so tests do not fail if the plugin initialises eagerly.
+const _secureChannel =
+    MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
 
 Widget _app() => MaterialApp(
       theme: guardBoxTheme(),
@@ -15,7 +24,14 @@ Widget _app() => MaterialApp(
 
 void main() {
   setUp(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_secureChannel, (_) async => null);
     SharedPreferences.setMockInitialValues({});
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_secureChannel, null);
   });
 
   // ── Validation ────────────────────────────────────────────────────────────
