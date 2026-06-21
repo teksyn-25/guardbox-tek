@@ -23,9 +23,6 @@ const _fileJson = <String, dynamic>{
   'dimensions': {'width': 400, 'height': 300},
 };
 
-http.Response _ok(Object body) =>
-    http.Response(jsonEncode(body), 200);
-
 void main() {
   late _MockHttp mockHttp;
   late ApiClient client;
