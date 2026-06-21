@@ -12,6 +12,53 @@ Fedora server                        Phone
 └─────────────────────────┘          └─────────────────────┘
 ```
 
+## Monorepo structure — HTMX and Flutter side by side
+
+HTMX templates stay inside `backend/` (tightly coupled to the Python routes). Flutter lives as a top-level sibling.
+
+```
+guardbox/
+├── backend/                 ← Python + HTMX web UI
+│   ├── api/
+│   ├── cdr/
+│   ├── storage/
+│   ├── intake/
+│   ├── templates/           ← Jinja2/HTMX (coupled to web.py, stays here)
+│   ├── static/
+│   └── Dockerfile
+├── mobile/                  ← Flutter app
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── screens/
+│   │   └── services/        ← HTTP client for /api/* endpoints
+│   ├── android/
+│   ├── ios/
+│   └── pubspec.yaml
+├── docker-compose.yml       ← runs backend only
+└── CLAUDE.md
+```
+
+Both frontends consume the same REST API under `/api/*`. The backend serves the HTMX web UI directly; the Flutter app calls the API over HTTPS from the phone.
+
+## Dual intake — how both frontends fit the data flow
+
+```
+TELEGRAM PATH                         WHATSAPP PATH
+User → @GuardBoxBot                   User → Share sheet → Flutter app
+      | (server-to-server)                   | (POST /api/files/upload)
+      +──────────────┬──────────────────────+
+                     v
+            CDR Sandbox (hardened Docker)
+            decode → rebuild in memory (tmpfs)
+                     v
+                storage.save()
+                     v
+            REST API (/api/*)
+              /           \
+    HTMX web UI          Flutter app
+    (browser)            (native APK/IPA)
+```
+
 ## How the Flutter app gets onto the phone
 
 - `flutter build apk` → produces `guardbox.apk` → sideload on Android (`adb install` or share the file directly)
