@@ -24,7 +24,7 @@ _DEFAULT_ROOT = "/data/guardbox"
 class LocalStorage(StorageBackend):
 
     def __init__(self, root: str | None = None) -> None:
-        self.root = Path(root) if root is not None else Path(os.getenv("STORAGE_ROOT", _DEFAULT_ROOT))
+        self.root = Path(root) if root is not None else Path(os.getenv("STORAGE_ROOT") or _DEFAULT_ROOT)
 
     # ── internal helpers ──────────────────────────────────────────────────
 

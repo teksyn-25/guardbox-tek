@@ -21,7 +21,7 @@ _SCRYPT_P = 1
 
 
 def _hash_path() -> Path:
-    root = os.getenv("STORAGE_ROOT", "/data/guardbox")
+    root = os.getenv("STORAGE_ROOT") or "/data/guardbox"
     return Path(root) / ".admin_password_hash"
 
 
