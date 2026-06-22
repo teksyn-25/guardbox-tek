@@ -1,25 +1,22 @@
 """
 Web UI routes — return HTML for browser use via HTMX.
 
-Auth flow: GET /auth/login → Telegram OAuth → GET /auth/callback → HttpOnly cookie.
+Auth flow:
+  First run: any protected route → /setup (create password)
+  Normal:    any protected route → /auth/login (enter password)
 Navigation: HTMX swaps #main-content; Alpine.js controls the viewer modal.
 
 REST API remains at /api/* (unchanged for Capacitor).
 """
 
-import base64
-import json
-import os
 import uuid
-from urllib.parse import quote
-
 from pathlib import Path
 
-from fastapi import APIRouter, Cookie, Depends, File, HTTPException, Request, Response, UploadFile
+from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from api.auth import TelegramLoginPayload, verify_telegram_hash
+from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import SESSION_MAX_AGE, SESSION_SECURE, sign_token, verify_token
 from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
 from storage import get_storage
@@ -67,37 +64,65 @@ def _set_session(response: Response, token: str) -> None:
     )
 
 
+# ── first-run setup ───────────────────────────────────────────────────────────
+
+_MIN_PASSWORD_LEN = 8
+
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_get(request: Request) -> Response:
+    if is_setup_done():
+        return RedirectResponse("/auth/login", status_code=302)
+    return templates.TemplateResponse(request, "setup.html", {})
+
+
+@router.post("/setup")
+async def setup_post(
+    request: Request,
+    password: str = Form(...),
+    confirm: str = Form(...),
+) -> Response:
+    if is_setup_done():
+        return RedirectResponse("/auth/login", status_code=302)
+    if len(password) < _MIN_PASSWORD_LEN:
+        return templates.TemplateResponse(
+            request, "setup.html",
+            {"error": f"Password must be at least {_MIN_PASSWORD_LEN} characters."},
+            status_code=422,
+        )
+    if password != confirm:
+        return templates.TemplateResponse(
+            request, "setup.html",
+            {"error": "Passwords do not match."},
+            status_code=422,
+        )
+    set_password(password)
+    return RedirectResponse("/auth/login", status_code=303)
+
+
 # ── auth ──────────────────────────────────────────────────────────────────────
 
-@router.get("/auth/login")
-async def auth_login(app: bool = False) -> RedirectResponse:
-    bot_id = os.environ["TELEGRAM_BOT_ID"]
-    origin = os.environ["GUARDBOX_BASE_URL"].rstrip("/")
-    callback = f"{origin}/auth/callback"
-    if app:
-        callback += "?app=1"
-    url = (
-        f"https://oauth.telegram.org/auth"
-        f"?bot_id={bot_id}"
-        f"&origin={quote(origin, safe='')}"
-        f"&return_to={quote(callback, safe='')}"
-    )
-    return RedirectResponse(url, status_code=302)
+@router.get("/auth/login", response_class=HTMLResponse)
+async def auth_login(request: Request) -> Response:
+    if not is_setup_done():
+        return RedirectResponse("/setup", status_code=302)
+    return templates.TemplateResponse(request, "login.html", {})
 
 
-@router.get("/auth/callback")
-async def auth_callback(tgAuthResult: str, app: bool = False) -> RedirectResponse:
-    padding = (4 - len(tgAuthResult) % 4) % 4
-    try:
-        data = json.loads(base64.urlsafe_b64decode(tgAuthResult + "=" * padding))
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid auth response")
-    verify_telegram_hash(TelegramLoginPayload(**data))
-    token = sign_token(str(data["id"]))
-    if app:
-        return RedirectResponse(f"guardbox://auth?token={token}", status_code=302)
-    r = RedirectResponse("/", status_code=302)
-    _set_session(r, token)
+@router.post("/auth/login")
+async def auth_login_post(
+    request: Request,
+    password: str = Form(...),
+) -> Response:
+    if not is_setup_done():
+        return RedirectResponse("/setup", status_code=302)
+    if not verify_password(password):
+        return templates.TemplateResponse(
+            request, "login.html", {"error": "Incorrect password."},
+            status_code=401,
+        )
+    r = RedirectResponse("/", status_code=303)
+    _set_session(r, sign_token(OWNER_ID))
     return r
 
 
@@ -110,6 +135,10 @@ async def auth_logout() -> RedirectResponse:
 
 # ── pages ─────────────────────────────────────────────────────────────────────
 
+def _login_or_setup() -> str:
+    return "/setup" if not is_setup_done() else "/auth/login"
+
+
 @router.get("/", response_class=HTMLResponse)
 async def index(
     request: Request,
@@ -117,7 +146,7 @@ async def index(
     storage: StorageBackend = Depends(get_storage),
 ) -> Response:
     if not user_id:
-        return RedirectResponse("/auth/login", status_code=302)
+        return RedirectResponse(_login_or_setup(), status_code=302)
     ctx = _dash_ctx(user_id, storage)
     if _htmx(request):
         return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
@@ -132,7 +161,7 @@ async def folder(
     storage: StorageBackend = Depends(get_storage),
 ) -> Response:
     if not user_id:
-        return RedirectResponse("/auth/login", status_code=302)
+        return RedirectResponse(_login_or_setup(), status_code=302)
     if not _htmx(request):
         return RedirectResponse("/", status_code=302)
     all_files = storage.list(user_id, "pending") + storage.list(user_id, "saved")

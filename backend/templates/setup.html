@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 <style>
-  .password-input {
+  .setup-input {
     width: 100%;
     max-width: 300px;
     background: rgba(255,255,255,.05);
@@ -14,9 +14,10 @@
     outline: none;
     transition: border-color .2s;
   }
-  .password-input::placeholder { color: var(--ink-faint); }
-  .password-input:focus { border-color: var(--line-hi); }
-  .btn-login {
+  .setup-input::placeholder { color: var(--ink-faint); }
+  .setup-input:focus { border-color: var(--line-hi); }
+  .setup-form { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
+  .btn-setup {
     width: 100%;
     max-width: 300px;
     background: var(--safe);
@@ -28,9 +29,11 @@
     border-radius: 14px;
     border: none;
     cursor: pointer;
+    margin-top: 4px;
     transition: transform .12s;
   }
-  .btn-login:hover { transform: translateY(-2px); }
+  .btn-setup:hover { transform: translateY(-2px); }
+  .setup-hint { font-size: 12px; color: var(--ink-faint); text-align: center; max-width: 280px; line-height: 1.5; }
 </style>
 
 <div class="login-page">
@@ -44,20 +47,32 @@
     Guard<b style="color:var(--safe)">Box</b>
   </div>
 
+  <p class="login-desc">Create a password to secure your GuardBox.</p>
+
   {% if error %}
   <div class="err-box">{{ error }}</div>
   {% endif %}
 
-  <form method="post" action="/auth/login" style="display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;">
+  <form method="post" action="/setup" class="setup-form">
     <input
-      class="password-input"
+      class="setup-input"
       type="password"
       name="password"
       placeholder="Password"
-      autocomplete="current-password"
+      autocomplete="new-password"
       autofocus
+      required
     >
-    <button type="submit" class="btn-login">Log in</button>
+    <input
+      class="setup-input"
+      type="password"
+      name="confirm"
+      placeholder="Confirm password"
+      autocomplete="new-password"
+      required
+    >
+    <p class="setup-hint">Minimum 8 characters. To reset, delete <code>.admin_password_hash</code> from your data directory.</p>
+    <button type="submit" class="btn-setup">Create password</button>
   </form>
 </div>
 {% endblock %}

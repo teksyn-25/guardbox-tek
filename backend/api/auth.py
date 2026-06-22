@@ -1,57 +1,49 @@
 """
-Auth endpoints.
+Auth endpoints for Capacitor / REST clients.
 
-POST /auth — Login with Telegram.
-Verifies the HMAC-SHA256 hash from the Telegram Login Widget / OAuth redirect,
-then returns a signed session token.
+GET  /api/auth/status  — returns {"setup_done": bool}, no auth required
+POST /api/auth/setup   — first-run only: set the password, returns Bearer token
+POST /api/auth         — login with password, returns Bearer token
 """
-
-import hashlib
-import hmac
-import os
-import time
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import sign_token
 
 router = APIRouter()
 
-_MAX_AUTH_AGE = 86_400  # Telegram auth_date must be within 24 hours
+_MIN_PASSWORD_LEN = 8
 
 
-class TelegramLoginPayload(BaseModel):
-    id: int
-    first_name: str
-    last_name: str | None = None
-    username: str | None = None
-    photo_url: str | None = None
-    auth_date: int
-    hash: str
+class PasswordSetupPayload(BaseModel):
+    password: str
 
 
-def verify_telegram_hash(payload: TelegramLoginPayload) -> None:
-    """
-    Telegram Login Widget hash check.
-    https://core.telegram.org/widgets/login#checking-authorization
-    """
-    bot_token = os.environ["BOT_TOKEN"]
-    secret_key = hashlib.sha256(bot_token.encode()).digest()
+class PasswordLoginPayload(BaseModel):
+    password: str
 
-    data = {k: str(v) for k, v in payload.model_dump(exclude={"hash"}).items() if v is not None}
-    check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
 
-    expected = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected, payload.hash):
-        raise HTTPException(status_code=401, detail="Invalid Telegram auth hash")
+@router.get("/auth/status")
+def auth_status() -> dict:
+    return {"setup_done": is_setup_done()}
 
-    if time.time() - payload.auth_date > _MAX_AUTH_AGE:
-        raise HTTPException(status_code=401, detail="Telegram auth_date is too old")
+
+@router.post("/auth/setup")
+def setup(payload: PasswordSetupPayload) -> dict:
+    if is_setup_done():
+        raise HTTPException(status_code=409, detail="Password already set")
+    if len(payload.password) < _MIN_PASSWORD_LEN:
+        raise HTTPException(status_code=422, detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters")
+    set_password(payload.password)
+    return {"token": sign_token(OWNER_ID)}
 
 
 @router.post("/auth")
-def login(payload: TelegramLoginPayload) -> dict:
-    verify_telegram_hash(payload)
-    token = sign_token(str(payload.id))
-    return {"token": token}
+def login(payload: PasswordLoginPayload) -> dict:
+    if not is_setup_done():
+        raise HTTPException(status_code=428, detail="setup_required")
+    if not verify_password(payload.password):
+        raise HTTPException(status_code=401, detail="Invalid password")
+    return {"token": sign_token(OWNER_ID)}

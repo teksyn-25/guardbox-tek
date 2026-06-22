@@ -1,9 +1,9 @@
-import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
 import 'config.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/password_setup_screen.dart';
 import 'screens/setup_screen.dart';
 import 'services/api_client.dart';
 import 'services/share_handler.dart';
@@ -24,13 +24,9 @@ class GuardBoxApp extends StatefulWidget {
 }
 
 class _GuardBoxAppState extends State<GuardBoxApp> {
-  late final AppLinks _appLinks;
-
   @override
   void initState() {
     super.initState();
-    _appLinks = AppLinks();
-    _appLinks.uriLinkStream.listen(_onDeepLink);
     _initShareHandler();
   }
 
@@ -42,15 +38,6 @@ class _GuardBoxAppState extends State<GuardBoxApp> {
     ShareHandlerService.init(navigatorKey, api.uploadFile);
   }
 
-  void _onDeepLink(Uri uri) async {
-    if (uri.scheme != 'guardbox' || uri.host != 'auth') return;
-    final token = uri.queryParameters['token'];
-    if (token == null) return;
-    await setToken(token);
-    navigatorKey.currentState
-        ?.pushNamedAndRemoveUntil('/dashboard', (_) => false);
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -60,9 +47,10 @@ class _GuardBoxAppState extends State<GuardBoxApp> {
       theme: guardBoxTheme(),
       home: const _StartupRouter(),
       routes: {
-        '/setup': (_) => const SetupScreen(),
-        '/login': (_) => const LoginScreen(),
-        '/dashboard': (_) => const DashboardScreen(),
+        '/setup':          (_) => const SetupScreen(),
+        '/password-setup': (_) => const PasswordSetupScreen(),
+        '/login':          (_) => const LoginScreen(),
+        '/dashboard':      (_) => const DashboardScreen(),
       },
     );
   }

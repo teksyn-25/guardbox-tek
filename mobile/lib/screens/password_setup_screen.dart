@@ -6,27 +6,42 @@ import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../theme.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class PasswordSetupScreen extends StatefulWidget {
+  const PasswordSetupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<PasswordSetupScreen> createState() => _PasswordSetupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _controller = TextEditingController();
+class _PasswordSetupScreenState extends State<PasswordSetupScreen> {
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    _controller.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
-    final password = _controller.text;
-    if (password.isEmpty) return;
+  Future<void> _create() async {
+    final password = _passwordController.text;
+    final confirm = _confirmController.text;
+
+    if (password.isEmpty) {
+      setState(() => _error = 'Enter a password.');
+      return;
+    }
+    if (password.length < 8) {
+      setState(() => _error = 'Password must be at least 8 characters.');
+      return;
+    }
+    if (password != confirm) {
+      setState(() => _error = 'Passwords do not match.');
+      return;
+    }
 
     final serverUrl = await getServerUrl();
     if (serverUrl == null) {
@@ -38,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final res = await http.post(
-        Uri.parse('$serverUrl/api/auth'),
+        Uri.parse('$serverUrl/api/auth/setup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'password': password}),
       );
@@ -47,16 +62,16 @@ class _LoginScreenState extends State<LoginScreen> {
         final bearer = (jsonDecode(res.body) as Map<String, dynamic>)['token'] as String;
         await setToken(bearer);
         if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
-      } else if (res.statusCode == 428) {
-        // Setup not done yet
-        if (mounted) Navigator.pushReplacementNamed(context, '/password-setup');
+      } else if (res.statusCode == 409) {
+        // Password already set — go straight to login
+        if (mounted) Navigator.pushReplacementNamed(context, '/login');
       } else {
-        setState(() { _error = 'Incorrect password.'; });
+        setState(() => _error = 'Could not create password. Try again.');
       }
     } catch (_) {
-      setState(() { _error = 'Could not reach the server.'; });
+      setState(() => _error = 'Could not reach the server.');
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -100,32 +115,45 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Open files securely.',
+                'Create a password to secure your GuardBox.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: kTextSecondary, fontSize: 14),
+                style: TextStyle(color: kTextSecondary, fontSize: 14, height: 1.5),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               TextField(
-                controller: _controller,
+                controller: _passwordController,
                 obscureText: true,
                 style: const TextStyle(color: kTextPrimary),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline, color: kAccent, size: 18),
-                  errorText: _error,
+                  prefixIcon: Icon(Icons.lock_outline, color: kAccent, size: 18),
                 ),
-                onSubmitted: (_) => _login(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _confirmController,
+                obscureText: true,
+                style: const TextStyle(color: kTextPrimary),
+                decoration: const InputDecoration(
+                  labelText: 'Confirm password',
+                  prefixIcon: Icon(Icons.lock_outline, color: kAccent, size: 18),
+                ),
+                onSubmitted: (_) => _create(),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              ],
+              const SizedBox(height: 24),
               FilledButton(
-                onPressed: _loading ? null : _login,
+                onPressed: _loading ? null : _create,
                 child: _loading
                     ? const SizedBox(
                         height: 18,
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                       )
-                    : const Text('Log in'),
+                    : const Text('Create password'),
               ),
               const SizedBox(height: 12),
               TextButton(
