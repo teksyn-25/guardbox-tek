@@ -5,12 +5,6 @@ Auth uses HttpOnly cookie (gb_session). HTMX requests carry HX-Request: true.
 Storage is overridden with a real LocalStorage backed by tmp_path.
 """
 
-import base64
-import hashlib
-import hmac
-import json
-import time
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -19,22 +13,20 @@ from api.middleware import sign_token
 from storage import get_storage
 from storage.local import LocalStorage
 
-_BOT_TOKEN = "test-bot-token"
 _USER = "web_test_user"
 _SESSION_SECRET = "test-secret-do-not-use"
-_BOT_ID = "99999999"
-_BASE_URL = "https://guardbox.example.com"
+_PASSWORD = "correcthorsebatterystaple"
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
 @pytest.fixture(autouse=True)
-def _env(monkeypatch):
-    monkeypatch.setenv("SESSION_SECRET",      _SESSION_SECRET)
-    monkeypatch.setenv("BOT_TOKEN",           _BOT_TOKEN)
-    monkeypatch.setenv("TELEGRAM_BOT_ID",     _BOT_ID)
-    monkeypatch.setenv("GUARDBOX_BASE_URL",   _BASE_URL)
+def _env(monkeypatch, tmp_path):
+    monkeypatch.setenv("SESSION_SECRET",        _SESSION_SECRET)
+    monkeypatch.setenv("STORAGE_ROOT",          str(tmp_path))
     monkeypatch.setenv("SESSION_SECURE_COOKIE", "false")
+    from admin_auth import set_password
+    set_password(_PASSWORD)  # default state: password already configured
 
 
 @pytest.fixture
@@ -73,55 +65,84 @@ def _meta(file_id: str, source: str = "telegram_bot") -> dict:
     }
 
 
-def _make_tg_auth_result(user_id: int = 12345) -> str:
-    payload = {"id": user_id, "first_name": "Test", "auth_date": int(time.time())}
-    secret = hashlib.sha256(_BOT_TOKEN.encode()).digest()
-    data = {k: str(v) for k, v in payload.items()}
-    check_str = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
-    payload["hash"] = hmac.new(secret, check_str.encode(), hashlib.sha256).hexdigest()
-    return base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
+# ── GET /setup ────────────────────────────────────────────────────────────────
+
+def test_setup_already_done_redirects_to_login(client):
+    r = client.get("/setup")
+    assert r.status_code == 302
+    assert "/auth/login" in r.headers["location"]
+
+
+def test_setup_not_done_returns_form(client, monkeypatch):
+    monkeypatch.setattr("api.web.is_setup_done", lambda: False)
+    r = client.get("/setup")
+    assert r.status_code == 200
+    assert 'name="password"' in r.text
+
+
+# ── POST /setup ───────────────────────────────────────────────────────────────
+
+def test_setup_post_valid_redirects_to_login(client, monkeypatch):
+    monkeypatch.setattr("api.web.is_setup_done", lambda: False)
+    r = client.post("/setup", data={"password": "mynewpassword", "confirm": "mynewpassword"})
+    assert r.status_code == 303
+    assert "/auth/login" in r.headers["location"]
+
+
+def test_setup_post_mismatch_returns_422(client, monkeypatch):
+    monkeypatch.setattr("api.web.is_setup_done", lambda: False)
+    r = client.post("/setup", data={"password": "password1", "confirm": "password2"})
+    assert r.status_code == 422
+    assert "match" in r.text.lower()
+
+
+def test_setup_post_too_short_returns_422(client, monkeypatch):
+    monkeypatch.setattr("api.web.is_setup_done", lambda: False)
+    r = client.post("/setup", data={"password": "short", "confirm": "short"})
+    assert r.status_code == 422
 
 
 # ── GET /auth/login ───────────────────────────────────────────────────────────
 
-def test_auth_login_redirects(client):
+def test_auth_login_returns_200(client):
+    r = client.get("/auth/login")
+    assert r.status_code == 200
+
+
+def test_auth_login_returns_html_form(client):
+    r = client.get("/auth/login")
+    assert "text/html" in r.headers["content-type"]
+    assert 'name="password"' in r.text
+
+
+def test_auth_login_redirects_to_setup_when_not_done(client, monkeypatch):
+    monkeypatch.setattr("api.web.is_setup_done", lambda: False)
     r = client.get("/auth/login")
     assert r.status_code == 302
+    assert "/setup" in r.headers["location"]
 
 
-def test_auth_login_redirects_to_telegram(client):
-    r = client.get("/auth/login")
-    assert "oauth.telegram.org" in r.headers["location"]
+# ── POST /auth/login ──────────────────────────────────────────────────────────
 
-
-def test_auth_login_includes_bot_id(client):
-    r = client.get("/auth/login")
-    assert _BOT_ID in r.headers["location"]
-
-
-# ── GET /auth/callback ────────────────────────────────────────────────────────
-
-def test_auth_callback_valid_sets_cookie(client):
-    r = client.get(f"/auth/callback?tgAuthResult={_make_tg_auth_result()}")
+def test_auth_login_correct_password_sets_cookie(client):
+    r = client.post("/auth/login", data={"password": _PASSWORD})
     assert "gb_session" in r.cookies
 
 
-def test_auth_callback_valid_redirects_to_dashboard(client):
-    r = client.get(f"/auth/callback?tgAuthResult={_make_tg_auth_result()}")
-    assert r.status_code == 302
+def test_auth_login_correct_password_redirects_home(client):
+    r = client.post("/auth/login", data={"password": _PASSWORD})
+    assert r.status_code == 303
     assert r.headers["location"] == "/"
 
 
-def test_auth_callback_invalid_data_returns_400(client):
-    r = client.get("/auth/callback?tgAuthResult=bm90anNvbg")
-    assert r.status_code == 400
-
-
-def test_auth_callback_tampered_hash_returns_401(client):
-    payload = {"id": 1, "first_name": "X", "auth_date": int(time.time()), "hash": "a" * 64}
-    encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
-    r = client.get(f"/auth/callback?tgAuthResult={encoded}")
+def test_auth_login_wrong_password_returns_401(client):
+    r = client.post("/auth/login", data={"password": "wrongpassword"})
     assert r.status_code == 401
+
+
+def test_auth_login_wrong_password_shows_error(client):
+    r = client.post("/auth/login", data={"password": "wrongpassword"})
+    assert "Incorrect" in r.text
 
 
 # ── POST /auth/logout ─────────────────────────────────────────────────────────

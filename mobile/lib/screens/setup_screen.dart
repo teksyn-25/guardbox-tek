@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../config.dart';
 import '../theme.dart';
@@ -14,6 +17,7 @@ class _SetupScreenState extends State<SetupScreen> {
   final _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -23,9 +27,29 @@ class _SetupScreenState extends State<SetupScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-    await setServerUrl(_controller.text.trim());
-    if (mounted) Navigator.pushReplacementNamed(context, '/login');
+    setState(() { _saving = true; _error = null; });
+
+    final url = _controller.text.trim().replaceAll(RegExp(r'/+$'), '');
+
+    try {
+      final res = await http.get(Uri.parse('$url/api/auth/status'));
+      if (res.statusCode != 200) {
+        setState(() { _error = 'Could not connect to server.'; });
+        return;
+      }
+      await setServerUrl(url);
+      final setupDone = (jsonDecode(res.body) as Map<String, dynamic>)['setup_done'] as bool;
+      if (mounted) {
+        Navigator.pushReplacementNamed(
+          context,
+          setupDone ? '/login' : '/password-setup',
+        );
+      }
+    } catch (_) {
+      setState(() { _error = 'Could not connect to server.'; });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -94,6 +118,10 @@ class _SetupScreenState extends State<SetupScreen> {
                   },
                 ),
               ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              ],
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _saving ? null : _save,
@@ -101,10 +129,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                       )
                     : const Text('Continue'),
               ),
