@@ -327,17 +327,15 @@ It never talks to storage, the bot, or the sandbox directly.
 2. Write unit tests that cover the new behaviour.
 3. Run the full test suite — `pytest` from the repo root. All tests must pass before moving on.
 4. Commit with a clear message.
-5. Push the branch and open a pull request — **never push directly to `master`**.
+5. Push directly to `master`.
 
 Do not start the next feature until the current one is committed, pushed, and green.
 Do not push a commit that has failing tests.
 
 ### Branching rules
 
-- `master` is the protected main branch. No direct pushes — all changes go through a PR.
-- Branch naming: `feat/<slug>`, `fix/<slug>`, `docs/<slug>`, `chore/<slug>`.
-- One logical change per branch. Keep PRs small and focused.
-- Merge only after the PR is reviewed (self-review is fine for solo work — read the diff before merging).
+- External contributors send PRs for review — the owner pushes directly to `master`.
+- Branch naming for contributors: `feat/<slug>`, `fix/<slug>`, `docs/<slug>`, `chore/<slug>`.
 
 ## Build order
 
