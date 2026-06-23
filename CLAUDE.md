@@ -372,3 +372,5 @@ python -m pytest --tb=short -q   # run from backend/
   the Telegram path. Claims must match the intake mechanism — see the truth tables
   in the Security Claims section.
 - Don't write CDR logic that modifies the input file. Always extract and rebuild fresh.
+
+@docs/dev-principles.md
