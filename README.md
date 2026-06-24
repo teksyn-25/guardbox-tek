@@ -49,6 +49,91 @@ The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api
 
 ---
 
+## Architecture
+
+```
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║  EXTERNAL WORLD                                                                  ║
+║                                                                                  ║
+║   [User's browser] ─────── HTTPS/HTTP ─────────────────────────────────────┐   ║
+║   (web dashboard)                                                           │   ║
+║                                                                             │   ║
+║   [Telegram servers] ───────────────────────────────────────────────────┐  │   ║
+║   (server-to-server,                                                    │  │   ║
+║    never through device)                                                │  │   ║
+║                                                                         │  │   ║
+║   [Flutter mobile app] ── HTTPS + Bearer token ─────────────────────┐  │  │   ║
+║   (v1.1 — /api/* only)                                               │  │  │   ║
+║                                                                       │  │  │   ║
+║   [WhatsApp share-sheet] ─ streams bytes ──────────────────────────┐ │  │  │   ║
+║   (via Flutter, v1.1)                                               │ │  │  │   ║
+╚═════════════════════════════════════════════════════════════════════╪═╪══╪══╪═══╝
+                                                                      │ │  │  │
+╔═════════════════════════════════════════════════════════════════════╪═╪══╪══╪════╗
+║  HARDENED DOCKER CONTAINER  (cap_drop:ALL · seccomp · read-only fs) │ │  │  │    ║
+║                                                                      │ │  │  │    ║
+║  ┌───────────────────────────────────────────────────────────────────▼─▼──▼──▼──┐ ║
+║  │                            app.py                                             │ ║
+║  │                  FastAPI — router registry + bot lifespan                     │ ║
+║  └────────────┬────────────────────┬───────────────────┬────────────────────────┘ ║
+║               │                    │                   │                           ║
+║        /api/auth            /api/files          /* + /upload                       ║
+║               │                    │                   │                           ║
+║  ┌────────────▼──────┐  ┌──────────▼────────┐  ┌──────▼─────────────────────┐    ║
+║  │   api/auth.py     │  │   api/files.py    │  │      api/web.py             │    ║
+║  │   password setup  │  │   list / get /    │  │  HTMX pages + partials      │    ║
+║  │   + login →token  │  │   save / delete   │  │  setup · login · dashboard  │    ║
+║  └────────────┬──────┘  └──────────┬────────┘  │  viewer · upload (HTML)     │    ║
+║               │                    │            └──────┬──────────────────────┘    ║
+║               └────────────────────┼──────────────────┘                           ║
+║                                    │                                               ║
+║  ┌─────────────────────────────────▼─────────────────────────────────────────┐    ║
+║  │  api/middleware.py — token gate (Bearer REST / HttpOnly cookie web UI)    │    ║
+║  └─────────────────────────────────┬─────────────────────────────────────────┘    ║
+║                                    │                                               ║
+║  ┌─────────────────────────────────▼─────────────────────────────────────────┐    ║
+║  │  admin_auth.py — scrypt password hash on disk · OWNER_ID · setup flag    │    ║
+║  └────────────────────────────────────────────────────────────────────────────┘   ║
+║                                                                                    ║
+║  ── INTAKE ─────────────────────────────────────────────────────────────────────  ║
+║                                                                                    ║
+║  ┌──────────────────────────────┐      ┌──────────────────────────────────────┐   ║
+║  │  intake/telegram_bot.py      │      │  intake/upload.py                    │   ║
+║  │  polls Telegram API          │      │  POST /api/files/upload              │   ║
+║  │  downloads image bytes       │      │  POST /upload (web UI)               │   ║
+║  │  server-to-server            │      │  source = share_sheet                │   ║
+║  │  source = telegram_bot       │      └──────────────┬───────────────────────┘   ║
+║  └──────────────┬───────────────┘                     │                           ║
+║                 └──────────────────┬──────────────────┘                           ║
+║                                    │ raw bytes                                     ║
+║  ── CDR SANDBOX ───────────────────▼──────────────  (tmpfs — nothing hits disk)   ║
+║                                                                                    ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │  cdr/sanitize.py  (libvips / pyvips)                                        │  ║
+║  │  magic bytes → decode in memory → strip metadata → re-encode clean PNG      │  ║
+║  └─────────────────────────────────┬───────────────────────────────────────────┘  ║
+║                                    │ clean bytes + CDR report                      ║
+║  ── STORAGE ────────────────────── ▼───────────────────────────────────────────── ║
+║                                                                                    ║
+║  ┌─────────────────────────────────────────────────────────────────────────────┐  ║
+║  │  storage/interface.py — save · list · get · delete · move                   │  ║
+║  └───────────────────────────────┬─────────────────────────────────────────────┘  ║
+║                                  │ STORAGE_BACKEND env var                         ║
+║              ┌───────────────────▼──────────────────┐                             ║
+║              │  storage/local.py                     │                             ║
+║              │  pending/{uid}/   saved/{uid}/        │                             ║
+║              │  {file_id}.png  + {file_id}.json      │                             ║
+║              └───────────────────────────────────────┘                             ║
+║                          [guardbox_data Docker volume]                             ║
+║                                                                                    ║
+║  ── TEMPLATES / STATIC ─────────────────────────────────────────────────────────  ║
+║  templates/  — Jinja2 (base, dashboard, login, setup, partials)                   ║
+║  static/     — htmx.min.js · alpine.min.js  (bundled, no CDN calls)               ║
+╚════════════════════════════════════════════════════════════════════════════════════╝
+```
+
+---
+
 ## v1 — Self-hosted
 
 **Supported intake paths in v1:**
