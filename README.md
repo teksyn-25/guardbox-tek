@@ -13,21 +13,26 @@ GuardBox intercepts a file before any app on your device decodes it. It runs the
 ## How it works
 
 ```
-Incoming file (Telegram / WhatsApp)
-        │
-        ▼
-  GuardBox sandbox
-  ┌─────────────────────────────┐
-  │  1. Identify from magic     │
-  │     bytes (not extension)   │
-  │  2. Decode in memory        │
-  │  3. Strip all metadata      │
-  │     (EXIF, XMP, GPS…)       │
-  │  4. Re-encode as clean PNG  │
-  └─────────────────────────────┘
-        │
-        ▼
-  Clean image — safe to view
+  Incoming file (Telegram / WhatsApp)
+           │
+           ▼
+  ┌─────────────────────────────────────────┐
+  │   GuardBox sandbox (not on your device) │
+  │                                         │
+  │   1. Identify from magic bytes          │
+  │   2. Decode in memory                   │
+  │   3. Strip all metadata (EXIF, XMP, GPS)│
+  │   4. Re-encode as clean PNG             │
+  └─────────────────────────────────────────┘
+           │
+           ▼
+  Screenshot of clean image sent to user
+           │
+           ├─────────────────────────────────────────┐
+           │                                         │
+           ▼                                         ▼
+  Deleted upon user request             Saved as sanitised image
+                                        in GuardBox storage
 ```
 
 The original file is never written to disk, never decoded on your device, never passed to another app. You view a screenshot of the reconstructed copy — nothing else reaches you.
