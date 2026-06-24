@@ -17,10 +17,10 @@ Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterpri
 
 | Layer | v1 (self-hosted) | v2 (cloud / paid) |
 |---|---|---|
-| Frontend | React (+ Capacitor shell for mobile) | Same |
+| Frontend | Flutter (mobile) | Same |
 | Backend language | Python | Python; CDR core migrates to Rust |
 | Bot intake | Telegram Bot API (`python-telegram-bot`) | Same |
-| Share-sheet intake | Capacitor app (WhatsApp / other apps) | Same |
+| Share-sheet intake | Flutter app (WhatsApp / other apps) | Same |
 | CDR engine | Python calling libvips (pyvips) | Rust binary (via PyO3 or standalone) |
 | Sandbox runtime | Hardened Docker (runc) | Kata + Firecracker / Cloud-Hypervisor |
 | Storage | KVM disk + JSON sidecars, NO database | S3-compatible + Postgres |
