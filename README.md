@@ -1,10 +1,8 @@
 # GuardBox
 
-**A sandboxed container for WhatsApp, Telegram, Signal, Messenger and email.**
+**A sandbox tool that protects your device from incoming files and images from WhatsApp, Telegram, and other messaging apps — processed inside an isolated container.**
 
-Files and images are redirected and opened inside a single-use cloud sandbox, the moment they arrive — far from your device. The exploit isolates in the box.
-
-GuardBox intercepts a file before any app on your device decodes it. It runs the file through a CDR (Content Disarm & Reconstruction) pipeline inside an isolated sandbox — stripping metadata, exploits, and hidden payloads — and returns a clean reconstructed copy. Your device never sees the original.
+When you receive a file in WhatsApp or Telegram, GuardBox fetches it before it touches your local storage — no app on your device ever decodes it. The file is processed inside an isolated container and a screenshot of the clean result is sent back to your screen. The file never stays on your device. You can delete the image right after viewing it, or save a sanitised version to GuardBox storage — isolated from your device. Sanitisation runs through CDR (Content Disarm & Reconstruction), a widely recognised standard for neutralising exploits and hidden payloads inside files.
 
 **Open-core · AGPL-3.0 · EU-hosted · Built in Stockholm**
 
@@ -130,10 +128,6 @@ The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api
 ║              │  {file_id}.png  + {file_id}.json      │                             ║
 ║              └───────────────────────────────────────┘                             ║
 ║                          [guardbox_data Docker volume]                             ║
-║                                                                                    ║
-║  ── TEMPLATES / STATIC ─────────────────────────────────────────────────────────  ║
-║  templates/  — Jinja2 (base, dashboard, login, setup, partials)                   ║
-║  static/     — htmx.min.js · alpine.min.js  (bundled, no CDN calls)               ║
 ╚════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
