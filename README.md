@@ -131,6 +131,8 @@ The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api
 
 ---
 
+<br><br><br><br><br>
+
 ## Architecture
 
 ```
