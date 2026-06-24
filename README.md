@@ -118,6 +118,8 @@ The original file is never written to disk, never decoded on your device, never 
 
 ---
 
+<br><br><br><br><br>
+
 ## Frontend architecture
 
 GuardBox has two frontends — they coexist in every version and share the same backend API:
