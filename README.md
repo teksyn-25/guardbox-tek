@@ -10,6 +10,79 @@ v1.0 code is ready — Telegram fetch is live. v1.1 code is in progress — What
 
 ---
 
+## Repository
+
+```
+backend/   Python API + web dashboard (HTMX, server-rendered)
+mobile/    Flutter native app (v1.1, WhatsApp intake)
+docs/      Architecture, security, portability rules
+scripts/   Build and test runners
+.github/   CI pipeline, CLA bot, review guide
+```
+
+```
+guardbox-tek/
+│
+├── backend/
+│   ├── app.py                        FastAPI entry point, bot lifespan
+│   ├── admin_auth.py                 Password auth — scrypt hash, setup flag
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .env.template
+│   ├── README.md
+│   ├── api/
+│   │   ├── auth.py                   Password login + first-run setup (REST)
+│   │   ├── files.py                  List, get, save, delete (REST)
+│   │   ├── middleware.py             Token gate — Bearer + HttpOnly cookie
+│   │   └── web.py                    Web UI routes (HTMX, HTML responses)
+│   ├── cdr/
+│   │   └── sanitize.py               CDR core — decode, strip, rebuild PNG (libvips)
+│   ├── intake/
+│   │   ├── telegram_bot.py           Telegram bot adapter (server-to-server)
+│   │   └── upload.py                 POST /api/files/upload (Flutter share-sheet)
+│   ├── storage/
+│   │   ├── interface.py              Abstract contract — 5 operations
+│   │   └── local.py                  KVM disk + JSON sidecars (self-hosted v1)
+│   ├── templates/                    Jinja2 templates (HTMX + Alpine)
+│   └── static/                       htmx.min.js, alpine.min.js (bundled)
+│
+├── mobile/                           Flutter native app (v1.1)
+│   ├── lib/
+│   │   ├── main.dart
+│   │   ├── config.dart
+│   │   ├── theme.dart
+│   │   ├── screens/                  login, setup, dashboard, folder, viewer, traces
+│   │   ├── services/                 api_client.dart, share_handler.dart
+│   │   ├── models/                   file_item.dart
+│   │   └── widgets/                  file_card, source_folder_card, stat_card, auth_image
+│   ├── android/
+│   └── test/                         Flutter unit tests
+│
+├── .github/
+│   ├── workflows/
+│   │   ├── test.yml                  CI — pytest on every push and PR
+│   │   └── cla.yml                   CLA bot — automated contributor signing
+│   └── REVIEW_GUIDE.md               Code review checklist
+│
+├── docs/
+│   ├── CLA.md                        Contributor License Agreement
+│   ├── SECURITY.md                   Threat model, disclosure policy
+│   ├── dev-principles.md             TDD and code standards
+│   ├── guardbox-portability-rules.md Portability decisions log
+│   └── self-host-doc.txt             Self-hosting guide
+│
+├── scripts/                          build.sh, run-tests.sh, run-security-tests.sh
+├── CLAUDE.md                         Design specification and architecture rules
+├── CONTRIBUTING.md                   Contribution guide + CLA process
+├── LICENSE                           AGPL-3.0
+├── README.md
+├── docker-compose.yml                One-command self-hosted install
+├── .env.template
+└── seccomp-profile.json              Docker seccomp profile
+```
+
+---
+
 ## How it works
 
 ```
