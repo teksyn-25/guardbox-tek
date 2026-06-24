@@ -173,7 +173,7 @@ User -> @GuardBoxBot                   User -> Share sheet -> Capacitor app
 | 2026-06-19 | Frontend talks only to the backend API; bot is backend-side | Keeps the seam clean, frontend provider-agnostic |
 | 2026-06-19 | **License: AGPL-3.0, dual-licensed with a commercial option for enterprise. Requires a CLA on all external contributions.** | Apache 2.0 let enterprises use the code free with no obligation to pay or contribute back — incompatible with "individuals free, enterprises pay." AGPL's network-copyleft clause makes enterprises buy the commercial license instead. CLA needed so GuardBox Labs can relicense contributed code commercially. |
 | 2026-06-19 | **v1 backend: all Python (including CDR). v2: CDR core migrates to Rust via PyO3.** | Python ships fast for October; Rust adds memory safety to the hot path once funded. |
-| _open_ | Identity: Login with Telegram vs pairing code | — |
+| _closed_ | Identity: Password login via GuardBox login page (set once on first run, no external auth) | Decision made — GuardBox owns the login page |
 | _open_ | Cloud provider for Plan 2 | Candidates: Hetzner, Elastx (SE), Scaleway |
 | _open_ | Isolation tier at launch | Start runc/hardened Docker -> Kata+Firecracker |
 | _open_ | Keep AWS off the scope | Sovereignty claim depends on it |

@@ -34,16 +34,31 @@ The original file is never written to disk, never decoded on your device, never 
 
 ---
 
+## Frontend architecture
+
+GuardBox has two frontends — they coexist in every version and share the same backend API:
+
+| Frontend | Where it lives | Available from |
+|---|---|---|
+| Web UI (HTMX + Jinja2) | `backend/templates/` + `backend/static/` | v1.0 — any browser |
+| Mobile app (Flutter) | `mobile/` | v1.1 — WhatsApp share-sheet |
+
+The web UI is server-rendered by Python (HTMX + Jinja2), tightly coupled to the backend routes, and lives inside `backend/` by design — no separate build step, no separate top-level directory. It is the primary interface for v1.0.
+
+The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api/*` REST endpoints and ships in v1.1 alongside the WhatsApp share-sheet intake. Both are frontends — neither replaces the other.
+
+---
+
 ## v1 — Self-hosted
 
 **Supported intake paths in v1:**
 - **Telegram** — forward any image to your GuardBox bot. It is fetched server-to-server, sanitised, and appears in your dashboard. Your device never touches the original.
-- **WhatsApp** — via the GuardBox mobile app (Capacitor, coming in v1.1).
+- **WhatsApp** — via the GuardBox mobile app (Flutter, coming in v1.1).
 
 **What you get:**
 - A hardened Docker container running the CDR pipeline
 - A web dashboard accessible over HTTP on your local machine or network
-- Login via your Telegram account (no password, no email)
+- Login with a password you set on first run — no external account required
 - Zero retention by default — delete anytime
 
 > **Self-hosted runs over HTTP.** Since you control the machine, there is no third party in the path and no need for TLS between your browser and localhost. The Telegram bot connection is always server-to-server and is handled by Telegram's own TLS.
@@ -130,8 +145,7 @@ docker compose up -d
 
 ### 6. Open the dashboard
 
-Go to **http://localhost:8000** in your browser.
-Click **Log in with Telegram** — confirms in your Telegram app and redirects back.
+Go to **http://localhost:8000** in your browser. On first run you are redirected to **/setup** — create your password once. After that, log in at **/auth/login** with that password.
 
 ### 7. Forward an image
 
@@ -188,7 +202,7 @@ docker compose up -d
 - **No retention by default:** files stay in `pending` until you explicitly save or delete them
 - **HttpOnly cookie:** session token is never accessible to JavaScript
 - **Non-root process:** container runs as a dedicated `guardbox` system user
-- **Localhost-only binding:** Docker binds to `127.0.0.1:8000` — not reachable from the network unless you explicitly expose it
+- **Network binding:** Docker binds to `0.0.0.0:8000` — reachable on your local network. Put it behind a firewall or reverse proxy if exposed to the internet
 
 ### What GuardBox does not claim
 

@@ -17,7 +17,7 @@ Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterpri
 
 | Layer | v1 (self-hosted) | v2 (cloud / paid) |
 |---|---|---|
-| Frontend | Flutter (mobile) | Same |
+| Frontend | Web UI (browser, v1.0) + Flutter mobile app (v1.1) | Same |
 | Backend language | Python | Python; CDR core migrates to Rust |
 | Bot intake | Telegram Bot API (`python-telegram-bot`) | Same |
 | Share-sheet intake | Flutter app (WhatsApp / other apps) | Same |
@@ -26,6 +26,21 @@ Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterpri
 | Storage | KVM disk + JSON sidecars, NO database | S3-compatible + Postgres |
 | Infrastructure | Bash scripts | Terraform |
 | License | AGPL-3.0 | AGPL-3.0 (or commercial license for enterprise) |
+
+### Frontend architecture
+
+GuardBox has two frontends — they coexist in every version and share the same backend API:
+
+| Frontend | Where it lives | Available from |
+|---|---|---|
+| Web UI (HTMX + Jinja2) | `backend/templates/` + `backend/static/` | v1.0 — any browser |
+| Mobile app (Flutter) | `mobile/` | v1.1 — WhatsApp share-sheet |
+
+The web UI is server-rendered by Python (HTMX + Jinja2), tightly coupled to the backend routes, and lives inside `backend/` by design — no separate build step, no separate top-level directory. It is the primary interface for v1.0.
+
+The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api/*` REST endpoints and ships in v1.1 alongside the WhatsApp share-sheet intake. Both are frontends — neither replaces the other.
+
+---
 
 ### Why Python for v1
 
@@ -165,7 +180,7 @@ the app to function, add it here with justification. If it is only nice to have,
 | "Never in Telegram's sandbox on the device" | ⚠️ MOSTLY TRUE — caveat | With auto-download off, Telegram doesn't fetch automatically. The forward action *may* briefly cache the file in Telegram's private app sandbox depending on client version/platform. Invisible to other apps, ephemeral. |
 | "Never on the device's disk at all" | ⚠️ MOSTLY TRUE — same caveat | Cannot guarantee absolute "never on disk" across all Telegram client versions. The brief sandbox cache during forward is the exception. |
 | "Never decoded by any app on the device" | ✅ TRUE | Telegram passes the file as opaque bytes during a forward; GuardBox's app never sees the original at all. |
-| "GuardBox itself never receives the original via the device" | ✅ TRUE | Bot adapter calls `getFile` server-to-server from Telegram's servers. Capacitor app is not in the data path for the original. |
+| "GuardBox itself never receives the original via the device" | ✅ TRUE | Bot adapter calls `getFile` server-to-server from Telegram's servers. The Flutter app is not in the data path for the original. |
 | "GuardBox's app never decodes the original" | ✅ TRUE | Only ever decodes the CDR-reconstructed PNG returned from the backend. |
 | "The original never reaches the gallery, file manager, or other apps" | ✅ TRUE | Confined to Telegram's private sandbox (if anywhere), never exposed beyond it. |
 
@@ -182,7 +197,7 @@ copy in the app — the file itself never travels to your phone."* Do not claim 
 | "Never in WhatsApp's sandbox" | ❌ FALSE | WhatsApp downloads the file to its private app sandbox in order to make it shareable. Outside GuardBox's control. |
 | "Never on the device's disk at all" | ❌ FALSE | WhatsApp's sandbox is on disk, just walled off from other apps and the gallery. The strict version cannot be honored in the share-sheet model. |
 | "Never decoded by any app other than WhatsApp's own download handler" | ✅ TRUE | GuardBox treats the bytes as opaque and streams them — never invokes an image parser on the original. The security-meaningful claim. |
-| "GuardBox itself never saves the original to disk" | ✅ TRUE | True *only if* the Capacitor share handler streams bytes rather than caches them (see code-level rule below). |
+| "GuardBox itself never saves the original to disk" | ✅ TRUE | True *only if* the Flutter share handler streams bytes rather than caches them (see code-level rule below). |
 | "Never exposed to other apps, gallery, or file managers" | ✅ TRUE | WhatsApp's sandbox is private to WhatsApp; GuardBox never copies it elsewhere. |
 
 **Use in copy:** *"GuardBox doesn't save the original to your gallery, doesn't keep
@@ -218,10 +233,10 @@ configuration, the strongest claims do not hold.
   file through GuardBox — meaning the original has touched the device *before*
   GuardBox ever sees it. That breaks the chain we're protecting.
 
-**Capacitor share handler — code-level rule that backs this up:**
+**Flutter share handler — code-level rule that backs this up:**
 The share handler must **stream incoming file bytes directly from the OS share
-intent to the backend upload endpoint**. Never use `Filesystem.readFile()` or any
-approach that writes the file to GuardBox's app cache or temp storage before upload.
+intent to the backend upload endpoint**. Never use any approach that writes the file
+to GuardBox's app cache or temp storage before upload.
 The bytes pass through device memory only, never to GuardBox-owned disk storage.
 
 ---
@@ -235,7 +250,7 @@ guardbox/
 │   └── guardbox-portability-rules.md  ← full portability rules + decisions log
 ├── backend/
 │   ├── api/                           ← REST endpoints (/api/*) + web HTML routes
-│   │   ├── auth.py                    ← Login with Telegram (REST)
+│   │   ├── auth.py                    ← Password login + first-run setup (REST)
 │   │   ├── files.py                   ← GET/POST/DELETE file endpoints (REST)
 │   │   ├── middleware.py              ← session token check (Bearer + HttpOnly cookie)
 │   │   └── web.py                     ← HTMX web UI routes (HTML responses)
@@ -261,7 +276,7 @@ guardbox/
 
 ```
 TELEGRAM PATH                         WHATSAPP PATH
-User → @GuardBoxBot                   User → Share sheet → Capacitor app
+User → @GuardBoxBot                   User → Share sheet → Flutter app
       | (server-to-server)                   | (POST /api/files/upload)
       +──────────────┬──────────────────────+
                      v
@@ -284,29 +299,33 @@ per-platform security claim.
 
 ---
 
-## API contract (REST — Capacitor / mobile clients)
+## API contract (REST — Flutter mobile app)
 
 All REST endpoints live under `/api/`. The web UI (HTMX + Jinja2) is served at `/`
 and uses the same backend logic but returns HTML instead of JSON.
 
 | Endpoint | Who calls it | Purpose |
 |---|---|---|
-| `POST /api/auth` | Capacitor app | Login with Telegram, return session token |
-| `POST /api/files/upload` | Capacitor app | Upload file for scanning (WhatsApp path) |
-| `GET /api/files?state=pending` | Capacitor app | List user's pending images |
-| `GET /api/files?state=saved` | Capacitor app | List user's saved images |
-| `GET /api/files/{id}` | Capacitor app | CDR metadata (what was stripped) |
-| `GET /api/files/{id}/image` | Capacitor / browser | Stream the clean PNG |
-| `POST /api/files/{id}/save` | Capacitor app | Move pending → saved |
-| `DELETE /api/files/{id}` | Capacitor app | Remove file |
+| `GET /api/auth/status` | Flutter app | Check if first-run setup is done |
+| `POST /api/auth/setup` | Flutter app | First run only: set the owner password |
+| `POST /api/auth` | Flutter app | Login with password, return Bearer token |
+| `POST /api/files/upload` | Flutter app | Upload file for scanning (WhatsApp path) |
+| `GET /api/files?state=pending` | Flutter app | List user's pending images |
+| `GET /api/files?state=saved` | Flutter app | List user's saved images |
+| `GET /api/files/{id}` | Flutter app | CDR metadata (what was stripped) |
+| `GET /api/files/{id}/image` | Flutter app / browser | Stream the clean PNG |
+| `POST /api/files/{id}/save` | Flutter app | Move pending → saved |
+| `DELETE /api/files/{id}` | Flutter app | Remove file |
 
 **Web UI routes (HTMX — return HTML partials):**
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /auth/login` | Redirect to Telegram OAuth |
-| `GET /auth/callback?tgAuthResult=` | Verify hash, set HttpOnly cookie, redirect `/` |
-| `POST /auth/logout` | Clear cookie, redirect login |
+| `GET /setup` | First-run setup: create owner password |
+| `POST /setup` | Submit password, redirect to login |
+| `GET /auth/login` | GuardBox login page (password form) |
+| `POST /auth/login` | Verify password, set HttpOnly session cookie |
+| `POST /auth/logout` | Clear cookie, redirect to login |
 | `GET /` | Dashboard (full page or HTMX partial) |
 | `GET /folder/{source}` | Folder partial (HTMX only) |
 | `GET /files/{id}/viewer` | Viewer partial (HTMX only) |
@@ -314,7 +333,7 @@ and uses the same backend logic but returns HTML instead of JSON.
 | `DELETE /files/{id}` | Delete file, return updated dashboard partial |
 | `DELETE /files` | Delete all files, return updated dashboard partial |
 
-Capacitor reads `GUARDBOX_API_URL` from env and calls only the `/api/*` endpoints.
+The Flutter app reads `GUARDBOX_API_URL` from env and calls only the `/api/*` endpoints.
 It never talks to storage, the bot, or the sandbox directly.
 
 ---
@@ -343,8 +362,8 @@ Do not push a commit that has failing tests.
 2. **CDR module** — libvips decode → strip metadata → re-encode PNG, in memory/tmpfs.
 3. **Telegram bot adapter** — receive forwarded file, pull from TG servers, run CDR, store.
 4. **API endpoints** — wire frontend to real storage (replace mock SEED data).
-5. **Identity** — Login with Telegram (links bot intake to app viewer by Telegram user ID).
-6. **WhatsApp share-sheet handler** — Capacitor intake, POST /files/upload.
+5. **Identity** — Password login + first-run setup (GuardBox login page, no external auth).
+6. **WhatsApp share-sheet handler** — Flutter app intake, POST /files/upload.
 7. **docker-compose** — one-command self-hosted install.
 8. **Hardening** — seccomp/AppArmor profiles, --cap-drop ALL, --network none, --rm.
 

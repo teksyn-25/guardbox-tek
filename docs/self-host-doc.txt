@@ -72,7 +72,8 @@ is always server-to-server and handled by Telegram's own TLS.
 ---------------------
 
   Go to http://localhost:8000 in your browser.
-  Click "Log in with Telegram" — confirms in your Telegram app and redirects back.
+  On first run you are redirected to /setup — create your password once.
+  After that, log in at /auth/login with that password.
 
 
 7. Forward an image

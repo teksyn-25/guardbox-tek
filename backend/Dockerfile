@@ -12,7 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN useradd --system --no-create-home --shell /usr/sbin/nologin guardbox
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin guardbox \
+    && mkdir -p /data/guardbox \
+    && chown guardbox:guardbox /data/guardbox
 USER guardbox
 
 EXPOSE 8000

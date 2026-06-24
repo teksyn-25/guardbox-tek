@@ -27,7 +27,7 @@ Tells Android this is the screen to open when the user taps the app icon on the 
 <data android:scheme="guardbox" android:host="auth" />
 ```
 
-Tells Android: "when any app tries to open a URL starting with `guardbox://auth`, route it to GuardBox." This is how the Telegram OAuth callback returns the session token to the app — the backend redirects to `guardbox://auth?token=xxx` and Android hands that URL to GuardBox, which reads the token from it.
+Tells Android: "when any app tries to open a URL starting with `guardbox://auth`, route it to GuardBox." This is used for deep-link callbacks — for example, the backend redirects to `guardbox://auth?token=xxx` and Android hands that URL to GuardBox, which reads the token from it.
 
 ---
 

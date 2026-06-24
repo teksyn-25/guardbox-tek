@@ -14,6 +14,7 @@ import uuid
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
+from admin_auth import OWNER_ID
 from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
 from storage import get_storage
 from storage.interface import StorageBackend
@@ -62,39 +63,37 @@ async def process_file_bytes(
 async def _handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Telegram sends multiple sizes; take the largest (last in list)
     photo = update.message.photo[-1]
-    user_id = str(update.effective_user.id)
     storage = get_storage()
 
     try:
         tg_file = await context.bot.get_file(photo.file_id)
         file_bytes = bytes(await tg_file.download_as_bytearray())
-        await process_file_bytes(file_bytes, user_id, storage)
+        await process_file_bytes(file_bytes, OWNER_ID, storage)
         await update.message.reply_text(_MSG_OK)
     except UnsupportedFileType:
         await update.message.reply_text(_MSG_UNSUPPORTED)
     except CorruptedInput:
         await update.message.reply_text(_MSG_CORRUPTED)
     except Exception:
-        logger.exception("Unhandled error processing photo from user %s", user_id)
+        logger.exception("Unhandled error processing photo")
         await update.message.reply_text(_MSG_ERROR)
 
 
 async def _handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     doc = update.message.document
-    user_id = str(update.effective_user.id)
     storage = get_storage()
 
     try:
         tg_file = await context.bot.get_file(doc.file_id)
         file_bytes = bytes(await tg_file.download_as_bytearray())
-        await process_file_bytes(file_bytes, user_id, storage)
+        await process_file_bytes(file_bytes, OWNER_ID, storage)
         await update.message.reply_text(_MSG_OK)
     except UnsupportedFileType:
         await update.message.reply_text(_MSG_UNSUPPORTED)
     except CorruptedInput:
         await update.message.reply_text(_MSG_CORRUPTED)
     except Exception:
-        logger.exception("Unhandled error processing document from user %s", user_id)
+        logger.exception("Unhandled error processing document")
         await update.message.reply_text(_MSG_ERROR)
 
 

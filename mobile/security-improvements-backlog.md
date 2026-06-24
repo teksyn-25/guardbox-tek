@@ -21,7 +21,7 @@ FastAPI adds no security headers by default. Add a middleware in `backend/app.py
 
 ### 2. Rate limiting on auth and upload endpoints
 No brute-force or flood protection on:
-- `POST /api/auth` (Telegram login)
+- `POST /api/auth` (password login)
 - `POST /upload` and `POST /api/files/upload`
 
 Add `slowapi` (FastAPI rate-limit library) or handle at the reverse-proxy level (nginx `limit_req`).
