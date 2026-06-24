@@ -4,7 +4,9 @@
 
 When you receive a file in WhatsApp or Telegram, GuardBox fetches it before it touches your local storage — no app on your device ever decodes it. The file is processed inside an isolated container and a screenshot of the clean result is sent back to your screen. The file never stays on your device. You can delete the image right after viewing it, or save a sanitised version to GuardBox storage — isolated from your device. Sanitisation runs through CDR (Content Disarm & Reconstruction), a widely recognised standard for neutralising exploits and hidden payloads inside files.
 
-**Open-core · AGPL-3.0 · EU-hosted · Built in Stockholm**
+v1.0 code is ready — Telegram fetch is live. v1.1 code is in progress — WhatsApp intake via Flutter. Both v1.0 and v1.1 are database-less: files are stored on your Linux server, isolated from your device.
+
+**Open-core · AGPL-3.0 · EU-hosted**
 
 ---
 
@@ -136,7 +138,7 @@ The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api
 ## v1 — Self-hosted
 
 **Supported intake paths in v1:**
-- **Telegram** — forward any image to your GuardBox bot. It is fetched server-to-server, sanitised, and appears in your dashboard. Your device never touches the original.
+- **Telegram** — forward any image to your GuardBox bot. It is fetched server-to-server and a screenshot of the sanitised result appears in your dashboard. Your device never touches the original, nor the sanitised copy — everything is stored in your GuardBox storage.
 - **WhatsApp** — via the GuardBox mobile app (Flutter, coming in v1.1).
 
 **What you get:**
