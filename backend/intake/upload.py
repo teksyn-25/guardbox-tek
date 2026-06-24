@@ -1,7 +1,7 @@
 """
 WhatsApp / share-sheet intake endpoint.
 
-POST /files/upload — the Capacitor app streams bytes from the OS share intent
+POST /files/upload — the Flutter app streams bytes from the OS share intent
 directly here. No write to GuardBox-owned disk before the upload; bytes travel
 through device memory only.
 

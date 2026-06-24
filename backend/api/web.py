@@ -6,7 +6,7 @@ Auth flow:
   Normal:    any protected route → /auth/login (enter password)
 Navigation: HTMX swaps #main-content; Alpine.js controls the viewer modal.
 
-REST API remains at /api/* (unchanged for Capacitor).
+REST API remains at /api/* (for Flutter mobile app).
 """
 
 import uuid

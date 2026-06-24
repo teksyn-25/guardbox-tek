@@ -1,5 +1,5 @@
 """
-Auth endpoints for Capacitor / REST clients.
+Auth endpoints for Flutter mobile app / REST clients.
 
 GET  /api/auth/status  — returns {"setup_done": bool}, no auth required
 POST /api/auth/setup   — first-run only: set the password, returns Bearer token

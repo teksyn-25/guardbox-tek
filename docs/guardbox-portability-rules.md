@@ -145,7 +145,7 @@ Mental model: build the image once -> run under runc for dev -> run under Kata f
 
 ```
 TELEGRAM PATH                         WHATSAPP PATH
-User -> @GuardBoxBot                   User -> Share sheet -> Capacitor app
+User -> @GuardBoxBot                   User -> Share sheet -> Flutter app
       | (bot, server-to-server)              | (POST /files/upload)
       +--------------+------------------------+
                      v
@@ -169,7 +169,7 @@ User -> @GuardBoxBot                   User -> Share sheet -> Capacitor app
 | 2026-06-19 | Plan 1 = self-hosted-first, Docker/OCI images | Open-source/grant positioning; portable |
 | 2026-06-19 | Plan 2 = same containers on rented infra | One codebase, no lock-in |
 | 2026-06-19 | **Self-hosted: NO database (KVM disk + JSON sidecars). Cloud: ALWAYS database (S3 + Postgres). Both behind one storage interface, chosen by STORAGE_BACKEND.** | Self-hosted stays dead-simple (no DB to run); cloud gets query power for billing/multi-user. App code identical; divergence sealed in storage/. |
-| 2026-06-19 | Intake: Telegram bot (server-to-server) + WhatsApp share sheet (Capacitor) | Telegram = "never travels through your device" (with caveat: brief Telegram-sandbox cache during forward, depending on client); WhatsApp = "never decoded on your device, never saved to gallery, never stored in GuardBox's own storage" (WhatsApp's own private sandbox holds it briefly, outside our control). See CLAUDE.md truth tables for full precision. |
+| 2026-06-19 | Intake: Telegram bot (server-to-server) + WhatsApp share sheet (Flutter app) | Telegram = "never travels through your device" (with caveat: brief Telegram-sandbox cache during forward, depending on client); WhatsApp = "never decoded on your device, never saved to gallery, never stored in GuardBox's own storage" (WhatsApp's own private sandbox holds it briefly, outside our control). See CLAUDE.md truth tables for full precision. |
 | 2026-06-19 | Frontend talks only to the backend API; bot is backend-side | Keeps the seam clean, frontend provider-agnostic |
 | 2026-06-19 | **License: AGPL-3.0, dual-licensed with a commercial option for enterprise. Requires a CLA on all external contributions.** | Apache 2.0 let enterprises use the code free with no obligation to pay or contribute back — incompatible with "individuals free, enterprises pay." AGPL's network-copyleft clause makes enterprises buy the commercial license instead. CLA needed so GuardBox Labs can relicense contributed code commercially. |
 | 2026-06-19 | **v1 backend: all Python (including CDR). v2: CDR core migrates to Rust via PyO3.** | Python ships fast for October; Rust adds memory safety to the hot path once funded. |

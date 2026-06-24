@@ -3,7 +3,7 @@ Session token middleware.
 
 Tokens are HMAC-signed (itsdangerous URLSafeTimedSerializer).
 Accepted from:
-  - Authorization: Bearer <token>   — Capacitor / REST API clients
+  - Authorization: Bearer <token>   — Flutter mobile app / REST API clients
   - Cookie: gb_session=<token>      — browser (HttpOnly, SameSite=Strict)
 
 SESSION_SECRET   — required env var, signs tokens.
