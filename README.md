@@ -314,6 +314,6 @@ docker compose up -d
 ## License
 
 AGPL-3.0. See [LICENSE](LICENSE).
-Commercial license available for enterprise deployments — contact guardboxlabs@protonmail.com.
+Commercial license available for enterprise deployments — contact guardbox@teksynai.com.
 
 A Contributor License Agreement (CLA) is required for external contributions.
