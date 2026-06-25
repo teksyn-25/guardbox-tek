@@ -1,3 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["backend"]
 asyncio_mode = "auto"
+
+[tool.isort]
+profile = "black"

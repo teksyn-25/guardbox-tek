@@ -6,10 +6,9 @@ Storage is overridden with a real LocalStorage backed by tmp_path.
 """
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app import app
 from api.middleware import sign_token
+from app import app
+from fastapi.testclient import TestClient
 from storage import get_storage
 from storage.local import LocalStorage
 
@@ -20,12 +19,14 @@ _PASSWORD = "correcthorsebatterystaple"
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(autouse=True)
 def _env(monkeypatch, tmp_path):
-    monkeypatch.setenv("SESSION_SECRET",        _SESSION_SECRET)
-    monkeypatch.setenv("STORAGE_ROOT",          str(tmp_path))
+    monkeypatch.setenv("SESSION_SECRET", _SESSION_SECRET)
+    monkeypatch.setenv("STORAGE_ROOT", str(tmp_path))
     monkeypatch.setenv("SESSION_SECURE_COOKIE", "false")
     from admin_auth import set_password
+
     set_password(_PASSWORD)  # default state: password already configured
 
 
@@ -50,6 +51,7 @@ def session_cookie():
 @pytest.fixture(scope="module")
 def tiny_png():
     import pyvips
+
     return pyvips.Image.black(8, 8, bands=3).write_to_buffer(".png")
 
 
@@ -67,6 +69,7 @@ def _meta(file_id: str, source: str = "telegram_bot") -> dict:
 
 # ── GET /setup ────────────────────────────────────────────────────────────────
 
+
 def test_setup_already_done_redirects_to_login(client):
     r = client.get("/setup")
     assert r.status_code == 302
@@ -82,9 +85,12 @@ def test_setup_not_done_returns_form(client, monkeypatch):
 
 # ── POST /setup ───────────────────────────────────────────────────────────────
 
+
 def test_setup_post_valid_redirects_to_login(client, monkeypatch):
     monkeypatch.setattr("api.web.is_setup_done", lambda: False)
-    r = client.post("/setup", data={"password": "mynewpassword", "confirm": "mynewpassword"})
+    r = client.post(
+        "/setup", data={"password": "mynewpassword", "confirm": "mynewpassword"}
+    )
     assert r.status_code == 303
     assert "/auth/login" in r.headers["location"]
 
@@ -103,6 +109,7 @@ def test_setup_post_too_short_returns_422(client, monkeypatch):
 
 
 # ── GET /auth/login ───────────────────────────────────────────────────────────
+
 
 def test_auth_login_returns_200(client):
     r = client.get("/auth/login")
@@ -123,6 +130,7 @@ def test_auth_login_redirects_to_setup_when_not_done(client, monkeypatch):
 
 
 # ── POST /auth/login ──────────────────────────────────────────────────────────
+
 
 def test_auth_login_correct_password_sets_cookie(client):
     r = client.post("/auth/login", data={"password": _PASSWORD})
@@ -147,6 +155,7 @@ def test_auth_login_wrong_password_shows_error(client):
 
 # ── POST /auth/logout ─────────────────────────────────────────────────────────
 
+
 def test_auth_logout_redirects_to_login(client, session_cookie):
     r = client.post("/auth/logout", cookies=session_cookie)
     assert r.status_code == 303
@@ -159,6 +168,7 @@ def test_auth_logout_clears_cookie(client, session_cookie):
 
 
 # ── GET / (dashboard) ─────────────────────────────────────────────────────────
+
 
 def test_index_without_auth_redirects_to_login(client):
     r = client.get("/")
@@ -190,6 +200,7 @@ def test_index_shows_dashboard_content(client, session_cookie):
 
 # ── GET /folder/{source} ──────────────────────────────────────────────────────
 
+
 def test_folder_without_htmx_redirects(client, session_cookie):
     r = client.get("/folder/telegram_bot", cookies=session_cookie)
     assert r.status_code == 302
@@ -219,6 +230,7 @@ def test_folder_without_auth_redirects(client):
 
 
 # ── GET /files/{id}/viewer ────────────────────────────────────────────────────
+
 
 def test_viewer_without_auth_returns_401(client):
     r = client.get("/files/f1/viewer", headers={"HX-Request": "true"})
@@ -262,6 +274,7 @@ def test_viewer_shows_file_id(client, session_cookie, storage, tiny_png):
 
 # ── POST /files/{id}/save ─────────────────────────────────────────────────────
 
+
 def test_web_save_without_auth_returns_401(client):
     r = client.post("/files/f1/save")
     assert r.status_code == 401
@@ -293,6 +306,7 @@ def test_web_save_returns_html(client, session_cookie, storage, tiny_png):
 
 # ── DELETE /files/{id} ────────────────────────────────────────────────────────
 
+
 def test_web_delete_without_auth_returns_401(client):
     r = client.delete("/files/f1")
     assert r.status_code == 401
@@ -323,6 +337,7 @@ def test_web_delete_returns_html(client, session_cookie, storage, tiny_png):
 
 # ── DELETE /files (clear all) ─────────────────────────────────────────────────
 
+
 def test_web_clear_all_without_auth_returns_401(client):
     r = client.delete("/files")
     assert r.status_code == 401
@@ -349,6 +364,7 @@ def test_web_clear_all_returns_html(client, session_cookie):
 
 
 # ── POST /upload (manual FAB upload) ─────────────────────────────────────────
+
 
 def test_upload_without_auth_redirects_to_login(client, tiny_png):
     r = client.post("/upload", files={"file": ("img.png", tiny_png, "image/png")})

@@ -6,9 +6,8 @@ Tests for REST auth endpoints:
 """
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app import app
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 
@@ -19,10 +18,11 @@ _SHORT = "short"
 @pytest.fixture(autouse=True)
 def _env(monkeypatch, tmp_path):
     monkeypatch.setenv("SESSION_SECRET", "test-session-secret")
-    monkeypatch.setenv("STORAGE_ROOT",   str(tmp_path))
+    monkeypatch.setenv("STORAGE_ROOT", str(tmp_path))
 
 
 # ── GET /api/auth/status ──────────────────────────────────────────────────────
+
 
 def test_status_before_setup():
     r = client.get("/api/auth/status")
@@ -38,8 +38,11 @@ def test_status_after_setup():
 
 # ── POST /api/auth/setup ──────────────────────────────────────────────────────
 
+
 def test_setup_returns_200():
-    assert client.post("/api/auth/setup", json={"password": _PASSWORD}).status_code == 200
+    assert (
+        client.post("/api/auth/setup", json={"password": _PASSWORD}).status_code == 200
+    )
 
 
 def test_setup_returns_bearer_token():
@@ -65,6 +68,7 @@ def test_setup_missing_field_returns_422():
 
 # ── POST /api/auth ────────────────────────────────────────────────────────────
 
+
 def test_login_before_setup_returns_428():
     r = client.post("/api/auth", json={"password": _PASSWORD})
     assert r.status_code == 428
@@ -83,7 +87,9 @@ def test_login_returns_bearer_token():
 
 def test_login_wrong_password_returns_401():
     client.post("/api/auth/setup", json={"password": _PASSWORD})
-    assert client.post("/api/auth", json={"password": "wrongpassword"}).status_code == 401
+    assert (
+        client.post("/api/auth", json={"password": "wrongpassword"}).status_code == 401
+    )
 
 
 def test_login_missing_field_returns_422():

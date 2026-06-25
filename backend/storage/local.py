@@ -24,7 +24,11 @@ _DEFAULT_ROOT = "/data/guardbox"
 class LocalStorage(StorageBackend):
 
     def __init__(self, root: str | None = None) -> None:
-        self.root = Path(root) if root is not None else Path(os.getenv("STORAGE_ROOT") or _DEFAULT_ROOT)
+        self.root = (
+            Path(root)
+            if root is not None
+            else Path(os.getenv("STORAGE_ROOT") or _DEFAULT_ROOT)
+        )
 
     # ── internal helpers ──────────────────────────────────────────────────
 
@@ -54,7 +58,10 @@ class LocalStorage(StorageBackend):
         folder = self.root / state / user_id
         if not folder.exists():
             return []
-        return [json.loads(p.read_text()) for p in sorted(folder.glob("*.json"), key=lambda p: p.stat().st_mtime)]
+        return [
+            json.loads(p.read_text())
+            for p in sorted(folder.glob("*.json"), key=lambda p: p.stat().st_mtime)
+        ]
 
     def get(self, user_id: str, file_id: str) -> tuple[bytes, dict]:
         state = self._locate(user_id, file_id)
@@ -75,4 +82,7 @@ class LocalStorage(StorageBackend):
         new_img = self._img(new_state, user_id, file_id)
         new_img.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(self._img(old_state, user_id, file_id)), str(new_img))
-        shutil.move(str(self._meta(old_state, user_id, file_id)), str(self._meta(new_state, user_id, file_id)))
+        shutil.move(
+            str(self._meta(old_state, user_id, file_id)),
+            str(self._meta(new_state, user_id, file_id)),
+        )

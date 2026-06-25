@@ -15,7 +15,7 @@ from pathlib import Path
 
 OWNER_ID = "owner"
 
-_SCRYPT_N = 2 ** 14
+_SCRYPT_N = 2**14
 _SCRYPT_R = 8
 _SCRYPT_P = 1
 
@@ -34,7 +34,9 @@ def is_setup_done() -> bool:
 def set_password(password: str) -> None:
     """Hash and persist the password. Overwrites any existing hash."""
     salt = os.urandom(32)
-    h = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P)
+    h = hashlib.scrypt(
+        password.encode("utf-8"), salt=salt, n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P
+    )
     p = _hash_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(f"{salt.hex()}:{h.hex()}")
@@ -51,5 +53,7 @@ def verify_password(candidate: str) -> bool:
     except ValueError:
         return False
     salt = bytes.fromhex(salt_hex)
-    h = hashlib.scrypt(candidate.encode("utf-8"), salt=salt, n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P)
+    h = hashlib.scrypt(
+        candidate.encode("utf-8"), salt=salt, n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P
+    )
     return secrets.compare_digest(h.hex(), hash_hex)

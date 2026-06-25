@@ -7,9 +7,8 @@ user_id is extracted from the token; it is never a query parameter.
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Response
-
 from api.middleware import require_user
+from fastapi import APIRouter, Depends, HTTPException, Response
 from storage import get_storage
 from storage.interface import StorageBackend
 

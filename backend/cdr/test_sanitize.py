@@ -2,12 +2,13 @@ import pytest
 
 pyvips = pytest.importorskip("pyvips")
 
-from cdr.sanitize import sanitize, UnsupportedFileType, CorruptedInput
+from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def tiny_jpeg():
@@ -26,6 +27,7 @@ def tiny_webp():
 
 # ── format detection ──────────────────────────────────────────────────────────
 
+
 def test_unknown_magic_raises_unsupported_file_type():
     with pytest.raises(UnsupportedFileType):
         sanitize(b"\x00\x01\x02\x03" * 16)
@@ -37,6 +39,7 @@ def test_truncated_jpeg_raises_corrupted(tiny_jpeg):
 
 
 # ── output is always PNG ──────────────────────────────────────────────────────
+
 
 def test_jpeg_input_produces_png(tiny_jpeg):
     out, _ = sanitize(tiny_jpeg)
@@ -61,6 +64,7 @@ def test_output_is_parseable_by_pyvips(tiny_jpeg):
 
 # ── metadata stripping (whitelist: test what remains, not just what was removed) ──
 
+
 def test_output_has_no_exif_fields(tiny_jpeg):
     out, _ = sanitize(tiny_jpeg)
     fields = pyvips.Image.new_from_buffer(out, "").get_fields()
@@ -74,6 +78,7 @@ def test_output_has_no_xmp(tiny_jpeg):
 
 
 # ── strip report ──────────────────────────────────────────────────────────────
+
 
 def test_strip_report_source_format_jpeg(tiny_jpeg):
     _, report = sanitize(tiny_jpeg)
@@ -101,6 +106,7 @@ def test_strip_report_dimensions_match_input(tiny_jpeg):
 
 
 # ── invariants ────────────────────────────────────────────────────────────────
+
 
 def test_original_bytes_not_mutated(tiny_jpeg):
     snapshot = bytearray(tiny_jpeg)

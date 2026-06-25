@@ -6,11 +6,10 @@ POST /api/auth/setup   — first-run only: set the password, returns Bearer toke
 POST /api/auth         — login with password, returns Bearer token
 """
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
 from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import sign_token
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -35,7 +34,10 @@ def setup(payload: PasswordSetupPayload) -> dict:
     if is_setup_done():
         raise HTTPException(status_code=409, detail="Password already set")
     if len(payload.password) < _MIN_PASSWORD_LEN:
-        raise HTTPException(status_code=422, detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Password must be at least {_MIN_PASSWORD_LEN} characters",
+        )
     set_password(payload.password)
     return {"token": sign_token(OWNER_ID)}
 

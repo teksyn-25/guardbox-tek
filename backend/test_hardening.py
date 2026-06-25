@@ -20,6 +20,7 @@ _DOCKERFILE = _ROOT / "backend" / "Dockerfile"
 
 # ── seccomp profile ───────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def seccomp() -> dict:
     return json.loads(_SECCOMP.read_text())
@@ -101,6 +102,7 @@ def test_seccomp_blocks_reboot(blocked_syscalls):
 
 # ── docker-compose ────────────────────────────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def compose() -> dict:
     return yaml.safe_load(_COMPOSE.read_text())
@@ -150,6 +152,7 @@ def test_compose_api_has_data_volume(api_service):
 
 
 # ── Dockerfile ────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def dockerfile_text() -> str:

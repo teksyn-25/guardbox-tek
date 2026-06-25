@@ -1,0 +1,15 @@
+# GuardBox reverse proxy
+# Caddy terminates TLS and forwards to the API container.
+# - tls internal: Caddy issues its own CA cert (no public domain needed).
+#   Install Caddy's root CA on client devices to avoid browser warnings:
+#   https://caddyserver.com/docs/automatic-https#local-https
+# - To use a public CA (Let's Encrypt), replace ":443" with your domain name.
+
+:443 {
+    tls internal
+    reverse_proxy api:8000
+}
+
+:80 {
+    redir https://{host}{uri} permanent
+}

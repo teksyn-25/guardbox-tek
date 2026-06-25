@@ -17,7 +17,9 @@ jobs:
         run: pip install bandit pip-audit
 
       - name: Bandit (code security scan)
-        run: bandit -r backend/ -f json -o bandit-report.json
+        run: |
+          bandit -r backend/ -f json -o bandit-report.json \
+            -x backend/api/test_auth.py,backend/api/test_files.py,backend/api/test_web.py,backend/cdr/test_sanitize.py,backend/intake/test_telegram_bot.py,backend/intake/test_upload.py,backend/storage/test_local.py,backend/test_hardening.py
 
       - name: pip-audit (dependency vulnerabilities)
         run: pip-audit --skip-editable

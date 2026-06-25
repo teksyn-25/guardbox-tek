@@ -12,13 +12,22 @@ REST API remains at /api/* (for Flutter mobile app).
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, Response, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-
 from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import SESSION_MAX_AGE, SESSION_SECURE, sign_token, verify_token
 from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
+from fastapi import (
+    APIRouter,
+    Cookie,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from storage import get_storage
 from storage.interface import StorageBackend
 
@@ -56,7 +65,8 @@ def _htmx(request: Request) -> bool:
 
 def _set_session(response: Response, token: str) -> None:
     response.set_cookie(
-        "gb_session", token,
+        "gb_session",
+        token,
         httponly=True,
         secure=SESSION_SECURE,
         samesite="strict",
@@ -86,13 +96,15 @@ async def setup_post(
         return RedirectResponse("/auth/login", status_code=302)
     if len(password) < _MIN_PASSWORD_LEN:
         return templates.TemplateResponse(
-            request, "setup.html",
+            request,
+            "setup.html",
             {"error": f"Password must be at least {_MIN_PASSWORD_LEN} characters."},
             status_code=422,
         )
     if password != confirm:
         return templates.TemplateResponse(
-            request, "setup.html",
+            request,
+            "setup.html",
             {"error": "Passwords do not match."},
             status_code=422,
         )
@@ -101,6 +113,7 @@ async def setup_post(
 
 
 # ── auth ──────────────────────────────────────────────────────────────────────
+
 
 @router.get("/auth/login", response_class=HTMLResponse)
 async def auth_login(request: Request) -> Response:
@@ -118,7 +131,9 @@ async def auth_login_post(
         return RedirectResponse("/setup", status_code=302)
     if not verify_password(password):
         return templates.TemplateResponse(
-            request, "login.html", {"error": "Incorrect password."},
+            request,
+            "login.html",
+            {"error": "Incorrect password."},
             status_code=401,
         )
     r = RedirectResponse("/", status_code=303)
@@ -134,6 +149,7 @@ async def auth_logout() -> RedirectResponse:
 
 
 # ── pages ─────────────────────────────────────────────────────────────────────
+
 
 def _login_or_setup() -> str:
     return "/setup" if not is_setup_done() else "/auth/login"
@@ -165,10 +181,14 @@ async def folder(
     if not _htmx(request):
         return RedirectResponse("/", status_code=302)
     all_files = storage.list(user_id, "pending") + storage.list(user_id, "saved")
-    return templates.TemplateResponse(request, "partials/_folder.html", {
-        "source": source,
-        "files": [f for f in all_files if f.get("source") == source],
-    })
+    return templates.TemplateResponse(
+        request,
+        "partials/_folder.html",
+        {
+            "source": source,
+            "files": [f for f in all_files if f.get("source") == source],
+        },
+    )
 
 
 @router.get("/files/{file_id}/viewer", response_class=HTMLResponse)
@@ -186,12 +206,17 @@ async def viewer(
         _, meta = storage.get(user_id, file_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse(request, "partials/_viewer.html", {
-        "file": meta,
-    })
+    return templates.TemplateResponse(
+        request,
+        "partials/_viewer.html",
+        {
+            "file": meta,
+        },
+    )
 
 
 # ── mutations (HTMX — return updated dashboard partial) ──────────────────────
+
 
 @router.post("/files/{file_id}/save", response_class=HTMLResponse)
 async def web_save(
@@ -206,7 +231,9 @@ async def web_save(
         storage.move(user_id, file_id, "saved")
     except FileNotFoundError:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse(request, "partials/_dashboard.html", _dash_ctx(user_id, storage))
+    return templates.TemplateResponse(
+        request, "partials/_dashboard.html", _dash_ctx(user_id, storage)
+    )
 
 
 @router.delete("/files/{file_id}", response_class=HTMLResponse)
@@ -222,7 +249,9 @@ async def web_delete(
         storage.delete(user_id, file_id)
     except FileNotFoundError:
         raise HTTPException(status_code=404)
-    return templates.TemplateResponse(request, "partials/_dashboard.html", _dash_ctx(user_id, storage))
+    return templates.TemplateResponse(
+        request, "partials/_dashboard.html", _dash_ctx(user_id, storage)
+    )
 
 
 @router.delete("/files", response_class=HTMLResponse)
@@ -236,12 +265,18 @@ async def web_clear_all(
     for state in ("pending", "saved"):
         for meta in storage.list(user_id, state):
             storage.delete(user_id, meta["file_id"])
-    return templates.TemplateResponse(request, "partials/_dashboard.html", {
-        "pending": [], "saved": [],
-    })
+    return templates.TemplateResponse(
+        request,
+        "partials/_dashboard.html",
+        {
+            "pending": [],
+            "saved": [],
+        },
+    )
 
 
 # ── manual upload (HTMX file-input → FAB) ────────────────────────────────────
+
 
 @router.post("/upload", response_class=HTMLResponse)
 async def web_upload(
@@ -261,10 +296,16 @@ async def web_upload(
     try:
         clean_bytes, report = sanitize(raw)
     except UnsupportedFileType:
-        ctx = {**_dash_ctx(user_id, storage), "error": "Unsupported file type. JPEG, PNG, and WebP only."}
+        ctx = {
+            **_dash_ctx(user_id, storage),
+            "error": "Unsupported file type. JPEG, PNG, and WebP only.",
+        }
         return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
     except CorruptedInput:
-        ctx = {**_dash_ctx(user_id, storage), "error": "File appears corrupted and could not be processed."}
+        ctx = {
+            **_dash_ctx(user_id, storage),
+            "error": "File appears corrupted and could not be processed.",
+        }
         return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
     metadata = {
         "file_id": str(uuid.uuid4()),
@@ -284,8 +325,9 @@ async def web_upload(
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _dash_ctx(user_id: str, storage: StorageBackend) -> dict:
     return {
         "pending": storage.list(user_id, "pending"),
-        "saved":   storage.list(user_id, "saved"),
+        "saved": storage.list(user_id, "saved"),
     }

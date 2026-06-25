@@ -29,8 +29,8 @@ from intake.telegram_bot import (
 )
 from storage.local import LocalStorage
 
-
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def tiny_jpeg():
@@ -52,6 +52,7 @@ def _make_update(reply_mock: AsyncMock) -> MagicMock:
 
 # ── process_file_bytes: core pipeline ────────────────────────────────────────
 
+
 async def test_process_file_bytes_saves_clean_file(tiny_jpeg, storage, tmp_path):
     meta = await process_file_bytes(tiny_jpeg, "u1", storage)
     file_id = meta["file_id"]
@@ -65,8 +66,15 @@ async def test_process_file_bytes_returns_source_telegram_bot(tiny_jpeg, storage
 
 async def test_process_file_bytes_returns_all_required_fields(tiny_jpeg, storage):
     meta = await process_file_bytes(tiny_jpeg, "u1", storage)
-    for key in ("file_id", "user_id", "source", "source_format", "stripped",
-                "output_format", "dimensions"):
+    for key in (
+        "file_id",
+        "user_id",
+        "source",
+        "source_format",
+        "stripped",
+        "output_format",
+        "dimensions",
+    ):
         assert key in meta, f"missing key: {key}"
 
 
@@ -93,6 +101,7 @@ async def test_process_file_bytes_each_call_gets_unique_file_id(tiny_jpeg, stora
 
 # ── handler error routing ─────────────────────────────────────────────────────
 
+
 def _make_photo_update(reply_mock):
     update = _make_update(reply_mock)
     update.message.photo = [MagicMock(file_id="tg_photo_id")]
@@ -118,7 +127,9 @@ async def test_photo_handler_replies_ok_on_success(tiny_jpeg, tmp_path):
     update = _make_photo_update(reply)
     ctx = await _context_downloading(tiny_jpeg)
 
-    with patch("intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))):
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
         await _handle_photo(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_OK)
@@ -129,7 +140,9 @@ async def test_photo_handler_replies_unsupported_on_bad_type(tmp_path):
     update = _make_photo_update(reply)
     ctx = await _context_downloading(b"\x00" * 32)
 
-    with patch("intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))):
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
         await _handle_photo(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_UNSUPPORTED)
@@ -140,7 +153,9 @@ async def test_photo_handler_replies_corrupted_on_bad_file(tiny_jpeg, tmp_path):
     update = _make_photo_update(reply)
     ctx = await _context_downloading(tiny_jpeg[:3])  # valid magic, no body
 
-    with patch("intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))):
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
         await _handle_photo(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_CORRUPTED)
@@ -151,7 +166,9 @@ async def test_document_handler_replies_ok_on_success(tiny_jpeg, tmp_path):
     update = _make_document_update(reply)
     ctx = await _context_downloading(tiny_jpeg)
 
-    with patch("intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))):
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
         await _handle_document(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_OK)
@@ -162,7 +179,9 @@ async def test_document_handler_replies_unsupported_on_bad_type(tmp_path):
     update = _make_document_update(reply)
     ctx = await _context_downloading(b"\x00" * 32)
 
-    with patch("intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))):
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
         await _handle_document(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_UNSUPPORTED)
@@ -173,13 +192,16 @@ async def test_document_handler_replies_corrupted_on_bad_file(tiny_jpeg, tmp_pat
     update = _make_document_update(reply)
     ctx = await _context_downloading(tiny_jpeg[:3])
 
-    with patch("intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))):
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
         await _handle_document(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_CORRUPTED)
 
 
 # ── build_app wiring ──────────────────────────────────────────────────────────
+
 
 def test_build_app_raises_without_bot_token(monkeypatch):
     monkeypatch.delenv("BOT_TOKEN", raising=False)

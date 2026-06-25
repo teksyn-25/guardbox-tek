@@ -7,12 +7,10 @@ Session tokens are signed with a test SESSION_SECRET set via monkeypatch.
 """
 
 import pytest
-from fastapi.testclient import TestClient
-
 import pyvips
-
-from app import app
 from api.middleware import sign_token
+from app import app
+from fastapi.testclient import TestClient
 from storage import get_storage
 from storage.local import LocalStorage
 
@@ -22,6 +20,7 @@ _OTHER = "user_b"
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(autouse=True)
 def _secret(monkeypatch):
@@ -65,21 +64,27 @@ def _meta(file_id: str, user_id: str = _USER) -> dict:
 
 # ── auth guard ────────────────────────────────────────────────────────────────
 
+
 def test_no_auth_header_returns_401(client):
     assert client.get("/api/files?state=pending").status_code == 401
 
 
 def test_invalid_token_returns_401(client):
-    r = client.get("/api/files?state=pending", headers={"Authorization": "Bearer garbage"})
+    r = client.get(
+        "/api/files?state=pending", headers={"Authorization": "Bearer garbage"}
+    )
     assert r.status_code == 401
 
 
 def test_wrong_scheme_returns_401(client):
-    r = client.get("/api/files?state=pending", headers={"Authorization": "Basic dXNlcjpwYXNz"})
+    r = client.get(
+        "/api/files?state=pending", headers={"Authorization": "Basic dXNlcjpwYXNz"}
+    )
     assert r.status_code == 401
 
 
 # ── GET /files?state= ─────────────────────────────────────────────────────────
+
 
 def test_list_pending_returns_200(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
@@ -119,6 +124,7 @@ def test_list_isolates_users(client, storage, auth, tiny_png):
 
 # ── GET /files/{id} ───────────────────────────────────────────────────────────
 
+
 def test_get_metadata_returns_200(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
     assert client.get("/api/files/f1", headers=auth).status_code == 200
@@ -135,6 +141,7 @@ def test_get_metadata_nonexistent_returns_404(client, auth):
 
 
 # ── GET /files/{id}/image ─────────────────────────────────────────────────────
+
 
 def test_get_image_returns_200(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
@@ -159,6 +166,7 @@ def test_get_image_nonexistent_returns_404(client, auth):
 
 # ── POST /files/{id}/save ─────────────────────────────────────────────────────
 
+
 def test_save_returns_204(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))
     assert client.post("/api/files/f1/save", headers=auth).status_code == 204
@@ -176,6 +184,7 @@ def test_save_nonexistent_returns_404(client, auth):
 
 
 # ── DELETE /files/{id} ───────────────────────────────────────────────────────
+
 
 def test_delete_returns_204(client, storage, auth, tiny_png):
     storage.save(_USER, tiny_png, _meta("f1"))

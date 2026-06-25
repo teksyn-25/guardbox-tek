@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from storage.local import LocalStorage
 
 
@@ -17,6 +16,7 @@ def _meta(file_id: str) -> dict:
 
 # ── save ─────────────────────────────────────────────────────────────────────
 
+
 def test_save_creates_png(storage, tmp_path):
     storage.save("u1", b"\x89PNG", _meta("f1"))
     assert (tmp_path / "pending" / "u1" / "f1.png").exists()
@@ -30,6 +30,7 @@ def test_save_creates_json_sidecar(storage, tmp_path):
 
 
 # ── list ─────────────────────────────────────────────────────────────────────
+
 
 def test_list_pending_returns_only_pending(storage):
     storage.save("u1", b"a", _meta("p1"))
@@ -52,6 +53,7 @@ def test_list_empty_for_user_with_no_files(storage):
 
 # ── get ──────────────────────────────────────────────────────────────────────
 
+
 def test_get_returns_correct_bytes_and_metadata(storage):
     meta = _meta("g1")
     storage.save("u1", b"pixel_data", meta)
@@ -66,6 +68,7 @@ def test_get_nonexistent_raises_file_not_found(storage):
 
 
 # ── delete ───────────────────────────────────────────────────────────────────
+
 
 def test_delete_removes_png(storage, tmp_path):
     storage.save("u1", b"data", _meta("d1"))
@@ -88,6 +91,7 @@ def test_delete_leaves_nothing_on_disk(storage, tmp_path):
 
 
 # ── move ─────────────────────────────────────────────────────────────────────
+
 
 def test_move_present_in_new_location(storage, tmp_path):
     storage.save("u1", b"data", _meta("m1"))

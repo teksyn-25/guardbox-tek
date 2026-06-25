@@ -11,13 +11,12 @@ import logging
 import os
 import uuid
 
-from telegram import Update
-from telegram.ext import Application, ContextTypes, MessageHandler, filters
-
 from admin_auth import OWNER_ID
 from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
 from storage import get_storage
 from storage.interface import StorageBackend
+from telegram import Update
+from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +29,7 @@ _MSG_ERROR = "Something went wrong. Please try again."
 
 
 # ── core processing (no Telegram dependency — fully testable) ─────────────────
+
 
 async def process_file_bytes(
     file_bytes: bytes,
@@ -59,6 +59,7 @@ async def process_file_bytes(
 
 
 # ── Telegram handlers ─────────────────────────────────────────────────────────
+
 
 async def _handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Telegram sends multiple sizes; take the largest (last in list)
@@ -98,6 +99,7 @@ async def _handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 # ── app wiring ────────────────────────────────────────────────────────────────
+
 
 def build_app() -> Application:
     """Build the PTB Application. BOT_TOKEN must be set in the environment."""

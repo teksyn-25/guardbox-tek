@@ -15,8 +15,8 @@ import os
 from fastapi import Cookie, Header, HTTPException
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
-SESSION_MAX_AGE    = 60 * 60 * 24 * 30   # 30 days
-SESSION_SECURE     = os.getenv("SESSION_SECURE_COOKIE", "true").lower() == "true"
+SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_SECURE = os.getenv("SESSION_SECURE_COOKIE", "true").lower() == "true"
 
 _MAX_AGE = SESSION_MAX_AGE
 
@@ -38,7 +38,7 @@ def verify_token(token: str) -> str:
 
 async def require_user(
     authorization: str | None = Header(default=None, alias="Authorization"),
-    gb_session:    str | None = Cookie(default=None),
+    gb_session: str | None = Cookie(default=None),
 ) -> str:
     """FastAPI dependency — accepts Bearer header (API) or HttpOnly cookie (web)."""
     if authorization:

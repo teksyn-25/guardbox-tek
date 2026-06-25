@@ -10,10 +10,9 @@ Source tagged 'share_sheet'. No filename, size, or timestamp is retained.
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
-
 from api.middleware import require_user
 from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from storage import get_storage
 from storage.interface import StorageBackend
 
@@ -35,9 +34,13 @@ async def upload_file(
     try:
         clean_bytes, report = sanitize(raw)
     except UnsupportedFileType:
-        raise HTTPException(status_code=415, detail="Unsupported file type. JPEG, PNG, and WebP only.")
+        raise HTTPException(
+            status_code=415, detail="Unsupported file type. JPEG, PNG, and WebP only."
+        )
     except CorruptedInput:
-        raise HTTPException(status_code=422, detail="File appears corrupted and could not be processed.")
+        raise HTTPException(
+            status_code=422, detail="File appears corrupted and could not be processed."
+        )
 
     metadata = {
         "file_id": str(uuid.uuid4()),

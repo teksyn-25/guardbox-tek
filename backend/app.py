@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
     bot_app = None
     if os.getenv("BOT_TOKEN"):
         from intake.telegram_bot import build_app
+
         bot_app = build_app()
         await bot_app.initialize()
         await bot_app.start()
@@ -48,11 +49,13 @@ async def lifespan(app: FastAPI):
         await bot_app.shutdown()
 
 
-app = FastAPI(title="GuardBox API", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
+app = FastAPI(
+    title="GuardBox API", docs_url="/api/docs", redoc_url=None, lifespan=lifespan
+)
 
 # REST — Flutter mobile app
-app.include_router(auth_router,   prefix="/api")
-app.include_router(files_router,  prefix="/api")
+app.include_router(auth_router, prefix="/api")
+app.include_router(files_router, prefix="/api")
 app.include_router(upload_router, prefix="/api")
 
 # Web UI — browser

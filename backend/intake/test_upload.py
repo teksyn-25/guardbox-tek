@@ -13,8 +13,8 @@ from fastapi.testclient import TestClient
 
 pyvips = pytest.importorskip("pyvips")
 
-from app import app
 from api.middleware import sign_token
+from app import app
 from storage import get_storage
 from storage.local import LocalStorage
 
@@ -59,6 +59,7 @@ def _upload(client, auth, data: bytes, filename="test.jpg"):
 
 # ── success ───────────────────────────────────────────────────────────────────
 
+
 def test_upload_returns_201(client, auth, tiny_jpeg):
     assert _upload(client, auth, tiny_jpeg).status_code == 201
 
@@ -91,6 +92,7 @@ def test_upload_output_is_png(client, auth, storage, tiny_jpeg):
 
 # ── metadata minimization ─────────────────────────────────────────────────────
 
+
 def test_upload_does_not_store_filename(client, auth, storage, tiny_jpeg):
     r = _upload(client, auth, tiny_jpeg, filename="sensitive_doc.jpg")
     file_id = r.json()["file_id"]
@@ -102,7 +104,7 @@ def test_upload_does_not_store_size(client, auth, storage, tiny_jpeg):
     r = _upload(client, auth, tiny_jpeg)
     file_id = r.json()["file_id"]
     _, meta = storage.get(_USER, file_id)
-    assert "size_in"  not in meta
+    assert "size_in" not in meta
     assert "size_out" not in meta
 
 
@@ -115,6 +117,7 @@ def test_upload_does_not_store_timestamp(client, auth, storage, tiny_jpeg):
 
 # ── auth guard ────────────────────────────────────────────────────────────────
 
+
 def test_upload_without_auth_returns_401(client, tiny_jpeg):
     r = client.post(
         "/api/files/upload",
@@ -125,8 +128,11 @@ def test_upload_without_auth_returns_401(client, tiny_jpeg):
 
 # ── rejection cases ───────────────────────────────────────────────────────────
 
+
 def test_upload_unsupported_type_returns_415(client, auth):
-    assert _upload(client, auth, b"\x00\x01\x02\x03" * 64, "file.bin").status_code == 415
+    assert (
+        _upload(client, auth, b"\x00\x01\x02\x03" * 64, "file.bin").status_code == 415
+    )
 
 
 def test_upload_corrupted_file_returns_422(client, auth, tiny_jpeg):
