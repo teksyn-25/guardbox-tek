@@ -1,0 +1,5 @@
+ignore:
+  # apt package version pinning (DL3008) is impractical for libvips-dev and gcc
+  # because version numbers differ between Debian releases and change with updates.
+  # The base image is already pinned (python:3.12-slim) which bounds the distro version.
+  - DL3008
