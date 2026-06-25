@@ -38,15 +38,17 @@ async def lifespan(app: FastAPI):
         bot_app = build_app()
         await bot_app.initialize()
         await bot_app.start()
-        assert bot_app.updater is not None  # set by default Application builder
-        await bot_app.updater.start_polling()
+        updater = bot_app.updater
+        if updater is not None:
+            await updater.start_polling()
         logger.info("Telegram bot polling started")
     else:
         logger.warning("BOT_TOKEN not set — Telegram bot disabled")
     yield
     if bot_app:
-        assert bot_app.updater is not None
-        await bot_app.updater.stop()
+        updater = bot_app.updater
+        if updater is not None:
+            await updater.stop()
         await bot_app.stop()
         await bot_app.shutdown()
 
