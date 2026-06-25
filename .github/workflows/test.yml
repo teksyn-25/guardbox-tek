@@ -19,10 +19,17 @@ jobs:
           sudo apt-get install -y libvips-dev
 
       - name: Install Python dependencies
-        run: pip install -r backend/requirements.txt pytest
+        run: pip install -r backend/requirements.txt pytest pytest-cov
 
-      - name: Run tests
-        run: cd backend && python -m pytest --tb=short -q
+      - name: Run tests with coverage
+        run: cd backend && python -m pytest --tb=short -q --cov=. --cov-report=term-missing
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/.coverage
 
       - name: Security test suite
         run: bash scripts/run-security-tests.sh

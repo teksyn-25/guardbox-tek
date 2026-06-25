@@ -1,0 +1,35 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvips-dev
+
+      - name: Install tools
+        run: pip install -r backend/requirements.txt black isort pylint mypy
+
+      - name: Black (format check)
+        run: black --check backend/
+
+      - name: isort (import order)
+        run: isort --check-only backend/
+
+      - name: MyPy (type check)
+        run: cd backend && mypy . --ignore-missing-imports
+
+      # Advisory — remove || true once first clean run passes at 8.0
+      - name: Pylint
+        run: cd backend && pylint $(find . -name "*.py" | grep -v __pycache__ | head -50) --fail-under=8.0 || true

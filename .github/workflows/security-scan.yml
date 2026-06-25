@@ -1,0 +1,30 @@
+name: Security Scan
+
+on: [push, pull_request]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install bandit pip-audit
+
+      - name: Bandit (code security scan)
+        run: bandit -r backend/ -f json -o bandit-report.json
+
+      - name: pip-audit (dependency vulnerabilities)
+        run: pip-audit --skip-editable
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: bandit-report.json
