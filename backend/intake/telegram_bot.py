@@ -62,6 +62,7 @@ async def process_file_bytes(
 
 
 async def _handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.message is not None  # guaranteed by MessageHandler
     # Telegram sends multiple sizes; take the largest (last in list)
     photo = update.message.photo[-1]
     storage = get_storage()
@@ -81,7 +82,9 @@ async def _handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def _handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    assert update.message is not None  # guaranteed by MessageHandler
     doc = update.message.document
+    assert doc is not None  # guaranteed by Document.ALL filter
     storage = get_storage()
 
     try:
