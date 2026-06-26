@@ -2,12 +2,15 @@
 
 ## What this is
 
-A CDR (Content Disarm & Reconstruction) tool for files received via messaging apps.
-Files are decoded and rebuilt inside an isolated sandbox — exploits hidden in the
-original file's structure are discarded by construction, not detection. GuardBox's
-app on the user's device never decodes the original; only the reconstructed clean
-copy is displayed. Per-platform claim precision is in the Security Claims section
-below.
+GuardBox is a **sandboxing tool for mobile messaging apps**. Its primary purpose is
+to isolate file processing inside a hardened sandbox so that exploits hidden in
+incoming files from Telegram, WhatsApp, or other messaging apps cannot reach the
+user's device or OS. The second function is **file sanitization via CDR (Content
+Disarm & Reconstruction)**: files are decoded and rebuilt fresh inside the sandbox —
+exploits hidden in the original file's structure are discarded by construction, not
+detection. GuardBox's app on the user's device never decodes the original; only the
+reconstructed clean copy is displayed. Per-platform claim precision is in the
+Security Claims section below.
 
 Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterprise), EU-hosted, built in Stockholm.
 
