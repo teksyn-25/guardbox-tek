@@ -8,9 +8,13 @@ incoming files from Telegram, WhatsApp, or other messaging apps cannot reach the
 user's device or OS. The second function is **file sanitization via CDR (Content
 Disarm & Reconstruction)**: files are decoded and rebuilt fresh inside the sandbox —
 exploits hidden in the original file's structure are discarded by construction, not
-detection. GuardBox's app on the user's device never decodes the original; only the
-reconstructed clean copy is displayed. Per-platform claim precision is in the
-Security Claims section below.
+detection.
+
+GuardBox's app on the user's device never decodes the original, nor the sanitized
+copy. The user sees only a **screenshot of the original** — the file itself is never
+rendered on the device. The reconstructed clean copy is saved inside the sandbox only
+upon the user's explicit request. Per-platform claim precision is in the Security
+Claims section below.
 
 Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterprise), EU-hosted, built in Stockholm.
 
