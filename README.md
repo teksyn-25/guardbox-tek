@@ -379,6 +379,8 @@ docker compose up -d
 - Does not claim zero-click protection (GuardBox enters the path only when you forward a file)
 - Telegram path: the original *may* briefly cache in Telegram's private app sandbox during the forward action depending on client version — this is outside GuardBox's control
 
+See the [full threat model and hardening checklist](docs/SECURITY.md) and the [code review checklist](.github/REVIEW_GUIDE.md).
+
 ---
 
 ## Self-hosted vs. cloud

@@ -30,6 +30,8 @@ jobs:
       - name: MyPy (type check)
         run: cd backend && mypy . --ignore-missing-imports
 
-      # Advisory — remove || true once first clean run passes at 8.0
+      # Advisory (score: 5.07/10, target: 8.0) — main issue is duplicate-code across
+      # intake/telegram_bot.py and intake/upload.py, which share a file-save pattern
+      # by design (both feed the same CDR pipeline). Remove || true once score hits 8.0.
       - name: Pylint
         run: cd backend && pylint $(find . -name "*.py" | grep -v __pycache__ | head -50) --fail-under=8.0 || true
