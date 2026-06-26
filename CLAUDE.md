@@ -16,7 +16,7 @@ rendered on the device. The reconstructed clean copy is saved inside the sandbox
 upon the user's explicit request. Per-platform claim precision is in the Security
 Claims section below.
 
-Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterprise), EU-hosted, built in Stockholm.
+Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterprise), EU-hosted.
 
 ---
 
