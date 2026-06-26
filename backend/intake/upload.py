@@ -32,12 +32,12 @@ async def upload_file(
 
     try:
         metadata = process_file_bytes(raw, user_id, "share_sheet", storage)
-    except UnsupportedFileType:
+    except UnsupportedFileType as exc:
         raise HTTPException(
             status_code=415, detail="Unsupported file type. JPEG, PNG, and WebP only."
-        )
-    except CorruptedInput:
+        ) from exc
+    except CorruptedInput as exc:
         raise HTTPException(
             status_code=422, detail="File appears corrupted and could not be processed."
-        )
+        ) from exc
     return {"file_id": metadata["file_id"]}

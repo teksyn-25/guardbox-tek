@@ -50,7 +50,7 @@ async def _handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await update.message.reply_text(_MSG_UNSUPPORTED)
     except CorruptedInput:
         await update.message.reply_text(_MSG_CORRUPTED)
-    except Exception:
+    except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Unhandled error processing media")
         await update.message.reply_text(_MSG_ERROR)
 

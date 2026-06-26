@@ -204,8 +204,8 @@ async def viewer(
         return RedirectResponse("/", status_code=302)
     try:
         _, meta = storage.get(user_id, file_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404) from exc
     return templates.TemplateResponse(
         request,
         "partials/_viewer.html",
@@ -229,8 +229,8 @@ async def web_save(
         raise HTTPException(status_code=401)
     try:
         storage.move(user_id, file_id, "saved")
-    except FileNotFoundError:
-        raise HTTPException(status_code=404)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404) from exc
     return templates.TemplateResponse(
         request, "partials/_dashboard.html", _dash_ctx(user_id, storage)
     )
@@ -247,8 +247,8 @@ async def web_delete(
         raise HTTPException(status_code=401)
     try:
         storage.delete(user_id, file_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404) from exc
     return templates.TemplateResponse(
         request, "partials/_dashboard.html", _dash_ctx(user_id, storage)
     )

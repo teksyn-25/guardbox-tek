@@ -4,3 +4,14 @@ asyncio_mode = "auto"
 
 [tool.isort]
 profile = "black"
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = [
+    "C0114",  # missing-module-docstring — empty __init__.py files don't need one
+    "C0115",  # missing-class-docstring — Pydantic request/response models are self-documenting
+    "C0116",  # missing-function-docstring — FastAPI endpoints and handlers are self-documenting
+    "C0411",  # wrong-import-order — isort is authoritative; Pylint doesn't know our first-party packages
+    "C0413",  # wrong-import-position — pytest.importorskip() forces deferred imports in test files
+    "W0621",  # redefined-outer-name — pytest fixture injection is a false positive
+    "E0401",  # import-error — pytest and test deps not installed in the Pylint CI step
+]
