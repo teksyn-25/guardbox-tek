@@ -43,6 +43,35 @@
 - [ ] Bot is not added to any public groups
 - [ ] `SESSION_SECURE_COOKIE=true` when behind HTTPS
 
+## Testing & Validation
+
+| Area | Tests | Notes |
+|---|---|---|
+| API endpoints (`api/`) | ✅ | Auth, user isolation, state transitions, 404 vs 403 |
+| Authentication (`auth.py`) | ✅ | Token validation, expiry, first-run setup |
+| Middleware | ✅ | Bearer token and HttpOnly cookie paths |
+| Storage (`storage/local.py`) | ✅ | File operations, user boundary enforcement |
+| CDR engine (`cdr/sanitize.py`) | ✅ | Format detection, corrupted input, EXIF stripping, output format |
+| Telegram intake | ✅ | Bot adapter, file forwarding path |
+| Upload intake | ✅ | Share-sheet upload endpoint |
+| Container hardening | ✅ | seccomp profile, capability drop, non-root user |
+
+**Total: 164 tests, all passing.**
+
+### Automated scanning on every PR
+
+| Tool | What it checks |
+|---|---|
+| Bandit | Python security issues (hardcoded secrets, unsafe calls) |
+| Safety / pip-audit | Known CVEs in dependencies |
+| MyPy | Type correctness |
+| Trivy | Container image CVEs |
+| Hadolint | Dockerfile best practices |
+
+### Development process
+
+New code requires TDD: test is written first (and must be seen failing), then implementation. No new code merges without a test that defines the expected behavior.
+
 ## Audit History
 
 | Date | Type | Result |
