@@ -10,10 +10,10 @@ Disarm & Reconstruction)**: files are decoded and rebuilt fresh inside the sandb
 exploits hidden in the original file's structure are discarded by construction, not
 detection.
 
-GuardBox's app on the user's device never decodes the original, nor the sanitized
-copy. The user sees only a **screenshot of the original** — the file itself is never
-rendered on the device. The reconstructed clean copy is saved inside the sandbox only
-upon the user's explicit request. Per-platform claim precision is in the Security
+GuardBox's app never decodes the original. The sanitized PNG is served from the
+sandbox via `GET /api/files/{id}/image` and displayed in a containment frame in the
+browser. The reconstructed clean copy stays in the sandbox (`pending/`) until the
+user explicitly saves or deletes it. Per-platform claim precision is in the Security
 Claims section below.
 
 Open-core, AGPL-3.0 (dual-licensed — commercial license available for enterprise), EU-hosted.
