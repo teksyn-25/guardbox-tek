@@ -9,12 +9,11 @@ BOT_TOKEN is read from the environment. Never hardcoded.
 
 import logging
 import os
-import uuid
 
 from admin_auth import OWNER_ID
-from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
+from cdr.sanitize import CorruptedInput, UnsupportedFileType
+from intake._pipeline import process_file_bytes
 from storage import get_storage
-from storage.interface import StorageBackend
 from telegram import Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
@@ -28,79 +27,31 @@ _MSG_CORRUPTED = "The file appears corrupted and could not be processed."
 _MSG_ERROR = "Something went wrong. Please try again."
 
 
-# ── core processing (no Telegram dependency — fully testable) ─────────────────
+# ── Telegram handler ──────────────────────────────────────────────────────────
 
 
-async def process_file_bytes(
-    file_bytes: bytes,
-    user_id: str,
-    storage: StorageBackend,
-) -> dict:
-    """
-    Sanitize raw file bytes and persist the clean copy.
-
-    Returns the metadata dict that was saved. Propagates UnsupportedFileType
-    and CorruptedInput so callers can map them to user-facing replies.
-    """
-    clean_bytes, report = sanitize(file_bytes)
-
-    metadata = {
-        "file_id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "source": "telegram_bot",
-        "source_format": report["source_format"],
-        "stripped": report["stripped"],
-        "output_format": report["output_format"],
-        "dimensions": report["dimensions"],
-    }
-
-    storage.save(user_id, clean_bytes, metadata)
-    return metadata
-
-
-# ── Telegram handlers ─────────────────────────────────────────────────────────
-
-
-async def _handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def _handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message is None:
         return
-    # Telegram sends multiple sizes; take the largest (last in list)
-    photo = update.message.photo[-1]
+    msg = update.message
+    if msg.photo:
+        tg_file_id = msg.photo[-1].file_id
+    elif msg.document:
+        tg_file_id = msg.document.file_id
+    else:
+        return
     storage = get_storage()
-
     try:
-        tg_file = await context.bot.get_file(photo.file_id)
+        tg_file = await context.bot.get_file(tg_file_id)
         file_bytes = bytes(await tg_file.download_as_bytearray())
-        await process_file_bytes(file_bytes, OWNER_ID, storage)
+        process_file_bytes(file_bytes, OWNER_ID, "telegram_bot", storage)
         await update.message.reply_text(_MSG_OK)
     except UnsupportedFileType:
         await update.message.reply_text(_MSG_UNSUPPORTED)
     except CorruptedInput:
         await update.message.reply_text(_MSG_CORRUPTED)
     except Exception:
-        logger.exception("Unhandled error processing photo")
-        await update.message.reply_text(_MSG_ERROR)
-
-
-async def _handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message is None:
-        return
-    doc = update.message.document
-    if doc is None:
-        return
-    storage = get_storage()
-
-    try:
-        tg_file = await context.bot.get_file(doc.file_id)
-        file_bytes = bytes(await tg_file.download_as_bytearray())
-        await process_file_bytes(file_bytes, OWNER_ID, storage)
-        await update.message.reply_text(_MSG_OK)
-    except UnsupportedFileType:
-        await update.message.reply_text(_MSG_UNSUPPORTED)
-    except CorruptedInput:
-        await update.message.reply_text(_MSG_CORRUPTED)
-    except Exception:
-        logger.exception("Unhandled error processing document")
+        logger.exception("Unhandled error processing media")
         await update.message.reply_text(_MSG_ERROR)
 
 
@@ -111,8 +62,7 @@ def build_app() -> Application:
     """Build the PTB Application. BOT_TOKEN must be set in the environment."""
     token = os.environ["BOT_TOKEN"]
     app = Application.builder().token(token).build()
-    app.add_handler(MessageHandler(filters.PHOTO, _handle_photo))
-    app.add_handler(MessageHandler(filters.Document.ALL, _handle_document))
+    app.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, _handle_media))
     return app
 
 
