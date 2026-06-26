@@ -22,7 +22,7 @@ jobs:
         run: pip install -r backend/requirements.txt pytest pytest-cov pytest-asyncio
 
       - name: Run tests with coverage
-        run: cd backend && python -m pytest --tb=short -q --cov=. --cov-report=term-missing
+        run: cd backend && python -m pytest --tb=short -q --cov=. --cov-report=term-missing --cov-fail-under=85
 
       - name: Upload coverage report
         if: always()

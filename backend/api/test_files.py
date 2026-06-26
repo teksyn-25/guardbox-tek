@@ -66,10 +66,22 @@ def _meta(file_id: str, user_id: str = _USER) -> dict:
 
 
 def test_no_auth_header_returns_401(client):
+    """
+    SECURITY BOUNDARY: Authentication required
+
+    Threat: Unauthenticated request attempts to list files.
+    Expected: 401 — no data returned, no information leaked.
+    """
     assert client.get("/api/files?state=pending").status_code == 401
 
 
 def test_invalid_token_returns_401(client):
+    """
+    SECURITY BOUNDARY: Token validation
+
+    Threat: Attacker submits a forged or corrupted Bearer token.
+    Expected: 401 — token rejected before any storage access.
+    """
     r = client.get(
         "/api/files?state=pending", headers={"Authorization": "Bearer garbage"}
     )
@@ -77,6 +89,12 @@ def test_invalid_token_returns_401(client):
 
 
 def test_wrong_scheme_returns_401(client):
+    """
+    SECURITY BOUNDARY: Auth scheme enforcement
+
+    Threat: Client sends Basic auth credentials instead of Bearer token.
+    Expected: 401 — wrong scheme rejected outright.
+    """
     r = client.get(
         "/api/files?state=pending", headers={"Authorization": "Basic dXNlcjpwYXNz"}
     )
@@ -116,6 +134,12 @@ def test_list_invalid_state_returns_422(client, auth):
 
 
 def test_list_isolates_users(client, storage, auth, tiny_png):
+    """
+    SECURITY BOUNDARY: User isolation
+
+    Threat: User A lists files and receives User B's file IDs in the response.
+    Expected: List contains only files owned by the authenticated user.
+    """
     storage.save(_OTHER, tiny_png, _meta("other_file", user_id=_OTHER))
     r = client.get("/api/files?state=pending", headers=auth)
     ids = [m["file_id"] for m in r.json()]

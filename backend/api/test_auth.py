@@ -52,12 +52,25 @@ def test_setup_returns_bearer_token():
 
 
 def test_setup_second_call_returns_409():
+    """
+    SECURITY BOUNDARY: Single-owner enforcement
+
+    Threat: Attacker calls /setup after the owner has already configured a password,
+    overwriting it with their own.
+    Expected: 409 — setup endpoint locked after first use.
+    """
     client.post("/api/auth/setup", json={"password": _PASSWORD})
     r = client.post("/api/auth/setup", json={"password": "anotherpassword"})
     assert r.status_code == 409
 
 
 def test_setup_short_password_returns_422():
+    """
+    SECURITY BOUNDARY: Password strength enforcement
+
+    Threat: Owner sets a trivially short password, weakening brute-force resistance.
+    Expected: 422 — passwords below minimum length are rejected at input.
+    """
     r = client.post("/api/auth/setup", json={"password": _SHORT})
     assert r.status_code == 422
 
@@ -86,6 +99,12 @@ def test_login_returns_bearer_token():
 
 
 def test_login_wrong_password_returns_401():
+    """
+    SECURITY BOUNDARY: Credential validation
+
+    Threat: Attacker attempts to log in with an incorrect password.
+    Expected: 401 — access denied with no information about why the password failed.
+    """
     client.post("/api/auth/setup", json={"password": _PASSWORD})
     assert (
         client.post("/api/auth", json={"password": "wrongpassword"}).status_code == 401

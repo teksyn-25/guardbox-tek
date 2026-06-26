@@ -55,13 +55,28 @@ git checkout -b feat/your-feature-name
 
 Per `docs/dev-principles.md`:
 
-1. Write a failing test first — this test defines the expected behavior.
+1. Write a failing test first — this test defines the expected behavior. The test must be seen failing before implementation starts.
 2. Implement code to pass the test.
 3. Run the full test suite — all tests must pass before committing.
+4. Coverage must not decrease — CI enforces a minimum threshold and will block the PR if it drops.
 
 ```sh
 cd backend && python -m pytest --tb=short -q
 ```
+
+For security-critical code (auth, middleware, storage, CDR), structure test docstrings as:
+
+```python
+def test_cross_user_access_returns_404(client, storage, auth):
+    """
+    SECURITY BOUNDARY: User isolation
+
+    Threat: User A crafts a URL containing User B's file ID.
+    Expected: 404 (not 403, which would confirm the file exists).
+    """
+```
+
+This makes the security intent auditable without reading the implementation.
 
 ### Code standards
 
