@@ -19,11 +19,14 @@ from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
 logger = logging.getLogger(__name__)
 
+_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB — Telegram bot API hard limit
+
 _MSG_OK = "File sanitised. Open GuardBox to view the clean copy."
 _MSG_UNSUPPORTED = (
     "Unsupported file type. GuardBox supports JPEG, PNG, and WebP images."
 )
 _MSG_CORRUPTED = "The file appears corrupted and could not be processed."
+_MSG_TOO_LARGE = "File exceeds the 20 MB limit."
 _MSG_ERROR = "Something went wrong. Please try again."
 
 
@@ -44,6 +47,9 @@ async def _handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     try:
         tg_file = await context.bot.get_file(tg_file_id)
         file_bytes = bytes(await tg_file.download_as_bytearray())
+        if len(file_bytes) > _MAX_FILE_SIZE:
+            await update.message.reply_text(_MSG_TOO_LARGE)
+            return
         process_file_bytes(file_bytes, OWNER_ID, "telegram_bot", storage)
         await update.message.reply_text(_MSG_OK)
     except UnsupportedFileType:

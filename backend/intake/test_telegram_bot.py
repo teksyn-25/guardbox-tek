@@ -18,9 +18,11 @@ pyvips = pytest.importorskip("pyvips")
 from cdr.sanitize import CorruptedInput, UnsupportedFileType
 from intake._pipeline import process_file_bytes
 from intake.telegram_bot import (
+    _MAX_FILE_SIZE,
     _MSG_CORRUPTED,
     _MSG_ERROR,
     _MSG_OK,
+    _MSG_TOO_LARGE,
     _MSG_UNSUPPORTED,
     _handle_media,
     build_app,
@@ -198,6 +200,22 @@ async def test_document_handler_replies_corrupted_on_bad_file(tiny_jpeg, tmp_pat
         await _handle_media(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_CORRUPTED)
+
+
+# ── file size limit ───────────────────────────────────────────────────────────
+
+
+async def test_photo_handler_replies_too_large_when_file_exceeds_limit(tmp_path):
+    reply = AsyncMock()
+    update = _make_photo_update(reply)
+    ctx = await _context_downloading(b"\xff\xd8\xff" + b"\x00" * _MAX_FILE_SIZE)
+
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
+        await _handle_media(update, ctx)
+
+    reply.assert_awaited_once_with(_MSG_TOO_LARGE)
 
 
 # ── build_app wiring ──────────────────────────────────────────────────────────
