@@ -1,0 +1,50 @@
+name: OWASP Dependency-Check
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1'  # weekly Monday 03:00 UTC — catch new CVEs without code changes
+
+jobs:
+  owasp-dependency-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # required to upload SARIF to GitHub Security tab
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check/data
+          key: nvd-${{ github.run_id }}
+          restore-keys: nvd-
+
+      - name: OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'GuardBox'
+          path: '.'
+          format: 'SARIF'
+          out: 'reports'
+          args: >
+            --scan backend/requirements.txt
+            --enableRetired
+            --failOnCVSS 7
+            --nvdApiKey ${{ secrets.NVD_API_KEY }}
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/dependency-check-report.sarif
+
+      - name: Upload full report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
