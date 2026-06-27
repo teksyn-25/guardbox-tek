@@ -27,12 +27,14 @@
 
 ## Known Limitations (v1 Self-Hosted)
 
-| Limitation | Impact | Mitigation |
-|---|---|---|
-| libvips parser exploits | Possible RCE in CDR container | Docker sandbox limits damage; non-root user |
-| Brief Telegram sandbox cache | Original briefly in Telegram's private storage | Auto-download must be OFF |
-| Single-machine storage | No redundancy | User responsible for host backups |
-| HTTP by default | No TLS on localhost | Use Caddy reverse proxy for remote access |
+| Limitation | Severity | Impact | Mitigation / Status |
+|---|---|---|---|
+| libvips parser exploits | Medium | Possible RCE in CDR container | Docker sandbox limits damage; non-root user |
+| Decompression bomb | Medium | Crafted file expanding to huge image could exhaust server memory before pixel count is checked | No size limit on decoded pixels yet — fix deferred post v1.0 delivery |
+| `FileTooLarge` not caught in intake | Low | Depends on decompression bomb fix; if triggered today falls to generic error handler | Deferred together with bomb fix |
+| Brief Telegram sandbox cache | Low | Original briefly in Telegram's private storage | Auto-download must be OFF |
+| Single-machine storage | Low | No redundancy | User responsible for host backups |
+| HTTP by default | Low | No TLS on localhost | Use Caddy reverse proxy for remote access |
 
 ## Hardening Checklist (Self-Hosters)
 
@@ -56,17 +58,23 @@
 | Upload intake | ✅ | Share-sheet upload endpoint |
 | Container hardening | ✅ | seccomp profile, capability drop, non-root user |
 
-**Total: 164 tests, all passing.**
+**Total: 165 tests, all passing.**
 
 ### Automated scanning on every PR
 
 | Tool | What it checks |
 |---|---|
-| Bandit | Python security issues (hardcoded secrets, unsafe calls) |
-| Safety / pip-audit | Known CVEs in dependencies |
-| MyPy | Type correctness |
+| Bandit | Python SAST — hardcoded secrets, unsafe calls |
+| pip-audit | Python dependency CVEs (OSV database) |
+| dart pub audit | Flutter dependency advisories (pub.dev) |
+| OWASP Dependency-Check | Python dependency CVEs (NVD database) |
+| Semgrep | Python + Dart SAST — auth bypasses, injection, OWASP Top 10, secrets |
+| CodeQL | Deep Python SAST — inter-procedural analysis, security-extended ruleset |
+| MyPy | Type correctness — prevents class of type-confusion bugs |
 | Trivy | Container image CVEs |
 | Hadolint | Dockerfile best practices |
+| Gitleaks | Secret scanning across full git history |
+| OpenSSF Scorecard | Overall security posture score (published to securityscorecards.dev) |
 
 ### Development process
 
@@ -100,4 +108,4 @@ We will acknowledge within 48 hours and issue a fix before public disclosure.
 
 ---
 
-*Last updated: 2026-06-24*
+*Last updated: 2026-06-27*

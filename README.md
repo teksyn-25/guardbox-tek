@@ -1,5 +1,12 @@
 # GuardBox
 
+[![Tests](https://github.com/teksyn-25/guardbox-tek/actions/workflows/test.yml/badge.svg)](https://github.com/teksyn-25/guardbox-tek/actions/workflows/test.yml)
+[![CodeQL](https://github.com/teksyn-25/guardbox-tek/actions/workflows/codeql.yml/badge.svg)](https://github.com/teksyn-25/guardbox-tek/actions/workflows/codeql.yml)
+[![Semgrep](https://github.com/teksyn-25/guardbox-tek/actions/workflows/semgrep.yml/badge.svg)](https://github.com/teksyn-25/guardbox-tek/actions/workflows/semgrep.yml)
+[![Security Scan](https://github.com/teksyn-25/guardbox-tek/actions/workflows/security-scan.yml/badge.svg)](https://github.com/teksyn-25/guardbox-tek/actions/workflows/security-scan.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/teksyn-25/guardbox-tek/badge)](https://securityscorecards.dev/viewer/?uri=github.com/teksyn-25/guardbox-tek)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+
 **A sandbox tool that protects your device from incoming files and images from WhatsApp, Telegram, and other messaging apps — processed inside an isolated container.**
 
 When you receive a file in WhatsApp or Telegram, GuardBox fetches it before it touches your local storage — no app on your device ever decodes it. The file is processed inside an isolated container and a screenshot of the clean result is sent back to your screen. The file never stays on your device. You can delete the image right after viewing it, or save a sanitised version to GuardBox storage — isolated from your device. Sanitisation runs through CDR (Content Disarm & Reconstruction), a widely recognised standard for neutralising exploits and hidden payloads inside files.
