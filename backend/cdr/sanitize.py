@@ -17,12 +17,7 @@ class CorruptedInput(ValueError):
     """Format recognised from magic bytes but pyvips failed to decode it."""
 
 
-class FileTooLarge(ValueError):
-    """Decoded image exceeds the maximum allowed pixel count (decompression bomb guard)."""
-
-
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
-MAX_PIXELS = 50_000_000  # 50 megapixels — well above any real phone camera image
 
 
 def _detect_format(data: bytes) -> str:
@@ -67,11 +62,6 @@ def sanitize(file_bytes: bytes) -> tuple[bytes, dict]:
         image = pyvips.Image.new_from_buffer(file_bytes, "")
     except pyvips.Error as exc:
         raise CorruptedInput(f"failed to decode {source_format}: {exc}") from exc
-
-    if image.width * image.height > MAX_PIXELS:
-        raise FileTooLarge(
-            f"image exceeds maximum size: {image.width}x{image.height}"
-        )
 
     stripped = _stripped_categories(image.get_fields())
 

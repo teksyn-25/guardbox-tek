@@ -2,10 +2,7 @@ import pytest
 
 pyvips = pytest.importorskip("pyvips")
 
-import sys
-
-import cdr.sanitize  # ensure submodule is in sys.modules
-from cdr.sanitize import CorruptedInput, FileTooLarge, UnsupportedFileType, sanitize
+from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
@@ -106,21 +103,6 @@ def test_strip_report_output_format_always_png(tiny_jpeg):
 def test_strip_report_dimensions_match_input(tiny_jpeg):
     _, report = sanitize(tiny_jpeg)
     assert report["dimensions"] == [8, 8]
-
-
-# ── decompression bomb guard ──────────────────────────────────────────────────
-
-
-def test_oversized_image_raises_file_too_large(monkeypatch, tiny_jpeg):
-    monkeypatch.setattr(sys.modules["cdr.sanitize"], "MAX_PIXELS", 1)
-    with pytest.raises(FileTooLarge, match="exceeds maximum size"):
-        sanitize(tiny_jpeg)
-
-
-def test_image_at_exact_limit_is_accepted(monkeypatch, tiny_jpeg):
-    monkeypatch.setattr(sys.modules["cdr.sanitize"], "MAX_PIXELS", 8 * 8)
-    out, _ = sanitize(tiny_jpeg)
-    assert out[:8] == _PNG_MAGIC
 
 
 # ── invariants ────────────────────────────────────────────────────────────────
