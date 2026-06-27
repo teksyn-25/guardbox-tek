@@ -1,3 +1,3 @@
-from .sanitize import CorruptedInput, UnsupportedFileType, sanitize
+from .sanitize import CorruptedInput, FileTooLarge, UnsupportedFileType, sanitize
 
-__all__ = ["sanitize", "UnsupportedFileType", "CorruptedInput"]
+__all__ = ["sanitize", "UnsupportedFileType", "CorruptedInput", "FileTooLarge"]
