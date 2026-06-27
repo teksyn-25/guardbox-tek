@@ -1,3 +1,0 @@
-# False positives — these are template placeholders, not real secrets.
-# All values are empty; the file exists to document what variables are needed.
-backend/.env.template
