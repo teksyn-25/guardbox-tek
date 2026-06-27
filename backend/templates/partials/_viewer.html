@@ -2,9 +2,9 @@
 {% set label = source_label.get(file.source, file.source) %}
 
 {% if file.source == "telegram_bot" %}
-  {% set claim = "GuardBox receives the file directly from Telegram's servers — it never travels through your device. You view a screenshot of the reconstructed clean copy in the app — the file itself never travels to your phone." %}
+  {% set claim = "GuardBox receives the file directly from Telegram's servers — it never travels through your device. The reconstructed clean copy is displayed in the browser viewer — the original file never reaches your phone." %}
 {% else %}
-  {% set claim = "GuardBox doesn't save the original to your gallery, doesn't keep it in GuardBox's own storage, and doesn't decode it on your phone. WhatsApp briefly holds it in its own private storage in order to share it — that part is outside GuardBox's control. You view a screenshot of the reconstructed clean copy in the app — the file itself is never sent to your phone." %}
+  {% set claim = "GuardBox doesn't save the original to your gallery, doesn't keep it in GuardBox's own storage, and doesn't decode it on your phone. WhatsApp briefly holds it in its own private storage in order to share it — that part is outside GuardBox's control. The reconstructed clean copy is displayed in the browser viewer — the original file is never sent to your phone." %}
 {% endif %}
 
 <div style="padding:0 18px">
