@@ -32,6 +32,7 @@ jobs:
           path: bandit-report.json
 
   flutter-audit:
+    if: false  # mobile app ships in v1.1 — re-enable then
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
