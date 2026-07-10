@@ -179,14 +179,21 @@ cd guardbox
 ### 4. Configure
 
 ```sh
-cp backend/.env.template .env
+./scripts/setup-env.sh
 ```
 
-Edit `.env`:
+This creates `.env` and fills in everything that can be safely generated or
+defaulted (`SESSION_SECRET`, `STORAGE_ROOT`, `GUARDBOX_BASE_URL`,
+`SESSION_SECURE_COOKIE`). It only prompts you for one thing — your Telegram
+**bot token** — since that can't be automated; get one from **@BotFather**
+(`/newbot`) first. Pressing Enter skips it for now (Telegram intake stays
+disabled until you set `BOT_TOKEN` in `.env` and restart).
+
+Prefer to do it by hand? `cp backend/.env.template .env` and fill in the same
+fields yourself — the script just automates this:
 
 ```sh
 BOT_TOKEN=123456789:ABCdef...          # from @BotFather
-TELEGRAM_BOT_ID=123456789             # numeric part of the token (before the colon)
 GUARDBOX_BASE_URL=http://localhost:8000
 SESSION_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
 
