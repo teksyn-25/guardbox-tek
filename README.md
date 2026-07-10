@@ -174,6 +174,23 @@ See [Architecture details](docs/architecture_details.md) for the full component 
 - Docker CE + Docker Compose plugin
 - A Telegram account to create a bot
 
+```mermaid
+flowchart LR
+    A[Linux self-host] -->|Supported| B(Documented)
+    C[Windows via WSL2 + Docker Desktop] -->|Validating| D(Coming soon)
+```
+
+> **Note — Windows support**
+> Status: validation in progress, not yet documented as officially supported.
+>
+> | Step | Windows equivalent |
+> |---|---|
+> | Docker install | Docker Desktop, WSL2 backend |
+> | Run scripts | From a WSL2 shell — scripts are POSIX `sh`, not PowerShell/cmd-compatible |
+> | Repo location | Inside the WSL2 filesystem, not `C:\...` |
+>
+> Remaining installation steps apply as-is once Docker is available. Report any friction — it feeds directly into the official Windows section.
+
 ---
 
 ## Installation
