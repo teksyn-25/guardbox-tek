@@ -19,7 +19,8 @@ v1.0 code is ready — Telegram fetch is live. v1.1 code is in progress — What
 
 ---
 
-## Repository
+
+## 📁 Repository
 
 ```
 backend/   Python API + web dashboard (HTMX, server-rendered)
@@ -33,9 +34,8 @@ Full file-by-file layout: see [`docs/repository-structure.txt`](docs/repository-
 
 ---
 
-<br><br><br><br><br>
 
-## How it works
+## ⚙️ How it works
 
 ```
   REQUEST FLOW
@@ -66,9 +66,8 @@ The original file is never written to disk, never decoded on your device, never 
 
 ---
 
-<br><br><br><br><br>
 
-## Frontend architecture
+## 🖥️ Frontend architecture
 
 GuardBox has two frontends — they coexist in every version and share the same backend API:
 
@@ -83,15 +82,15 @@ The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api
 
 ---
 
-<br><br><br><br><br>
 
-## Architecture
+## 🏗️ Architecture
 
 See [Architecture details](docs/architecture_details.md) for the full component diagram.
 
 ---
 
-## v1 — Self-hosted
+
+## 🚀 v1 — Self-hosted
 
 **Supported intake paths in v1:**
 - **Telegram** — forward any image to your GuardBox bot. It is fetched server-to-server and a screenshot of the sanitised result appears in your dashboard. Your device never touches the original, nor the sanitised copy — everything is stored in your GuardBox storage.
@@ -107,7 +106,8 @@ See [Architecture details](docs/architecture_details.md) for the full component 
 
 ---
 
-## Requirements
+
+## ✅ Requirements
 
 - A Linux machine (Fedora 39+, Ubuntu 22.04+, or Debian 12+)
 - Docker CE + Docker Compose plugin
@@ -132,7 +132,8 @@ flowchart LR
 
 ---
 
-## Installation
+
+## 📦 Installation
 
 ### 1. Install Docker
 
@@ -213,7 +214,8 @@ It appears in your dashboard within seconds — clean, metadata-stripped, safe t
 
 ---
 
-## Updating
+
+## 🔄 Updating
 
 ```sh
 git pull
@@ -223,7 +225,8 @@ docker compose up -d
 
 ---
 
-## Exposing over HTTPS (optional)
+
+## 🔒 Exposing over HTTPS (optional)
 
 If you want GuardBox accessible from outside your local machine (remote server, VPS), put it behind a reverse proxy with TLS. **Caddy** handles certificate renewal automatically:
 
@@ -254,7 +257,8 @@ docker compose up -d
 
 ---
 
-## Security
+
+## 🛡️ Security
 
 - **Sandboxed container:** `cap_drop: ALL`, `no-new-privileges`, read-only root filesystem, custom seccomp profile, tmpfs-only writes
 - **Metadata stripped:** EXIF, XMP, GPS and all embedded metadata removed from every file
@@ -273,7 +277,8 @@ See the [full threat model and hardening checklist](docs/SECURITY.md) and the [c
 
 ---
 
-## Self-hosted vs. cloud
+
+## ☁️ Self-hosted vs. cloud
 
 | | Self-hosted (v1) | Cloud (v2) |
 |---|---|---|
@@ -286,7 +291,8 @@ See the [full threat model and hardening checklist](docs/SECURITY.md) and the [c
 
 ---
 
-## License
+
+## 📄 License
 
 AGPL-3.0. See [LICENSE](LICENSE).
 Commercial license available for enterprise deployments — contact guardbox@teksynai.com.
