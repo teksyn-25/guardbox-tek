@@ -119,8 +119,8 @@ flowchart LR
     C[Windows via WSL2 + Docker Desktop] -->|Validating| D(Coming soon)
 ```
 
-> **Note — Windows support**
-> Status: validation in progress, not yet documented as officially supported.
+> [!WARNING]
+> **Windows support** — validation in progress, not yet documented as officially supported.
 >
 > | Step | Windows equivalent |
 > |---|---|
