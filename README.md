@@ -83,14 +83,14 @@ The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api
 ---
 
 
-## 🏗️ Architecture
+## Architecture
 
 See [Architecture details](docs/architecture_details.md) for the full component diagram.
 
 ---
 
 
-## 🚀 v1 — Self-hosted
+## v1 — Self-hosted
 
 **Supported intake paths in v1:**
 - **Telegram** — forward any image to your GuardBox bot. It is fetched server-to-server and a screenshot of the sanitised result appears in your dashboard. Your device never touches the original, nor the sanitised copy — everything is stored in your GuardBox storage.
