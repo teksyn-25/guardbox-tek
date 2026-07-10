@@ -29,66 +29,7 @@ scripts/   Build and test runners
 .github/   CI pipeline, CLA bot, review guide
 ```
 
-```
-guardbox-tek/
-│
-├── backend/
-│   ├── app.py                        FastAPI entry point, bot lifespan
-│   ├── admin_auth.py                 Password auth — scrypt hash, setup flag
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── .env.template
-│   ├── README.md
-│   ├── api/
-│   │   ├── auth.py                   Password login + first-run setup (REST)
-│   │   ├── files.py                  List, get, save, delete (REST)
-│   │   ├── middleware.py             Token gate — Bearer + HttpOnly cookie
-│   │   └── web.py                    Web UI routes (HTMX, HTML responses)
-│   ├── cdr/
-│   │   └── sanitize.py               CDR core — decode, strip, rebuild PNG (libvips)
-│   ├── intake/
-│   │   ├── telegram_bot.py           Telegram bot adapter (server-to-server)
-│   │   └── upload.py                 POST /api/files/upload (Flutter share-sheet)
-│   ├── storage/
-│   │   ├── interface.py              Abstract contract — 5 operations
-│   │   └── local.py                  KVM disk + JSON sidecars (self-hosted v1)
-│   ├── templates/                    Jinja2 templates (HTMX + Alpine)
-│   └── static/                       htmx.min.js, alpine.min.js (bundled)
-│
-├── mobile/                           Flutter native app (v1.1)
-│   ├── lib/
-│   │   ├── main.dart
-│   │   ├── config.dart
-│   │   ├── theme.dart
-│   │   ├── screens/                  login, setup, dashboard, folder, viewer, traces
-│   │   ├── services/                 api_client.dart, share_handler.dart
-│   │   ├── models/                   file_item.dart
-│   │   └── widgets/                  file_card, source_folder_card, stat_card, auth_image
-│   ├── android/
-│   └── test/                         Flutter unit tests
-│
-├── .github/
-│   ├── workflows/
-│   │   ├── test.yml                  CI — pytest on every push and PR
-│   │   └── cla.yml                   CLA bot — automated contributor signing
-│   └── REVIEW_GUIDE.md               Code review checklist
-│
-├── docs/
-│   ├── CLA.md                        Contributor License Agreement
-│   ├── SECURITY.md                   Threat model, disclosure policy
-│   ├── dev-principles.md             TDD and code standards
-│   ├── guardbox-portability-rules.md Portability decisions log
-│   └── self-host-doc.txt             Self-hosting guide
-│
-├── scripts/                          build.sh, run-tests.sh, run-security-tests.sh
-├── CLAUDE.md                         Design specification and architecture rules
-├── CONTRIBUTING.md                   Contribution guide + CLA process
-├── LICENSE                           AGPL-3.0
-├── README.md
-├── docker-compose.yml                One-command self-hosted install
-├── .env.template
-└── seccomp-profile.json              Docker seccomp profile
-```
+Full file-by-file layout: see [`docs/repository-structure.txt`](docs/repository-structure.txt).
 
 ---
 
@@ -97,30 +38,28 @@ guardbox-tek/
 ## How it works
 
 ```
-  CDR PIPELINE                                         REQUEST FLOW
-  ─────────────────────────────────────────────────    ────────────────────────────────────────────────────
-  Incoming file (Telegram / WhatsApp)                            v1.0                         v1.1
-           │                                           ┌───────────────────────┐    ┌──────────────────────┐
-           ▼                                           │  Telegram Bot API     │    │  Flutter Mobile App  │
-  ┌─────────────────────────────────────┐              │  (server-to-server)   │    │  (WhatsApp           │
-  │   GuardBox sandbox                  │              └──────────┬────────────┘    │   share-sheet)       │
-  │   (not on your device)              │                         │                 └──────────┬───────────┘
-  │                                     │              ┌──────────▼────────────┐               │
-  │   1. Identify from magic bytes      │              │  Browser              │               │
-  │   2. Decode in memory               │              │  HTMX / Jinja2        │               │
-  │   3. Strip all metadata             │              └──────────┬────────────┘               │
-  │      (EXIF, XMP, GPS)               │                         │ GET/POST /*                │ POST /api/*
-  │   4. Re-encode as clean PNG         │                         └──────────────┬─────────────┘
-  └─────────────────────────────────────┘                                        │
-           │                                                                 app.py (FastAPI)
-           ▼                                                                      │
-  Screenshot of clean image sent to user                       ┌──────────────────┼──────────────────┐
-           │                                                    │                  │                  │
-           ├──────────────────────────────┐                  intake/             api/            storage/
-           │                              │               telegram_bot         auth/files        interface
-           ▼                              ▼               upload.py            web.py            local.py
-  Deleted upon user request     Saved as sanitised image
-                                in GuardBox storage
+  REQUEST FLOW
+  ────────────────────────────────────────────────────
+            v1.0                         v1.1
+  ┌───────────────────────┐    ┌──────────────────────┐
+  │  Telegram Bot API     │    │  Flutter Mobile App  │
+  │  (server-to-server)   │    │  (WhatsApp           │
+  └──────────┬────────────┘    │   share-sheet)       │
+             │                 └──────────┬───────────┘
+  ┌──────────▼────────────┐               │
+  │  Browser              │               │
+  │  HTMX / Jinja2        │               │
+  └──────────┬────────────┘               │
+             │ GET/POST /*                │ POST /api/*
+             └──────────────┬─────────────┘
+                             │
+                        app.py (FastAPI)
+                             │
+            ┌──────────────────┼──────────────────┐
+            │                  │                  │
+          intake/             api/            storage/
+       telegram_bot         auth/files        interface
+       upload.py            web.py            local.py
 ```
 
 The original file is never written to disk, never decoded on your device, never passed to another app. You view a screenshot of the reconstructed copy — nothing else reaches you.
