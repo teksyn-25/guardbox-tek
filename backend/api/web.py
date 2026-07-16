@@ -14,7 +14,7 @@ from pathlib import Path
 
 from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import SESSION_MAX_AGE, SESSION_SECURE, sign_token, verify_token
-from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
+from cdr.sanitize import CorruptedInput, ImageTooLarge, UnsupportedFileType, sanitize
 from fastapi import (
     APIRouter,
     Cookie,
@@ -305,6 +305,12 @@ async def web_upload(
         ctx = {
             **_dash_ctx(user_id, storage),
             "error": "File appears corrupted and could not be processed.",
+        }
+        return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
+    except ImageTooLarge:
+        ctx = {
+            **_dash_ctx(user_id, storage),
+            "error": "Image dimensions exceed the allowed limit.",
         }
         return templates.TemplateResponse(request, "partials/_dashboard.html", ctx)
     metadata = {

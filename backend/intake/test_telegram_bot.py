@@ -15,6 +15,8 @@ import pytest
 
 pyvips = pytest.importorskip("pyvips")
 
+import sys
+
 from cdr.sanitize import CorruptedInput, UnsupportedFileType
 from intake._pipeline import process_file_bytes
 from intake.telegram_bot import (
@@ -23,11 +25,15 @@ from intake.telegram_bot import (
     _MSG_ERROR,
     _MSG_OK,
     _MSG_TOO_LARGE,
+    _MSG_TOO_LARGE_DIMS,
     _MSG_UNSUPPORTED,
     _handle_media,
     build_app,
 )
 from storage.local import LocalStorage
+
+# The module object — NOT `import cdr.sanitize`, whose `.sanitize` attr is the shadowing fn.
+sanitize_mod = sys.modules["cdr.sanitize"]
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
@@ -216,6 +222,24 @@ async def test_photo_handler_replies_too_large_when_file_exceeds_limit(tmp_path)
         await _handle_media(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_TOO_LARGE)
+
+
+async def test_photo_handler_replies_too_large_dims_on_bomb(
+    tiny_jpeg, tmp_path, monkeypatch
+):
+    # Decompression-bomb guard: over-pixel image gets its own reply, not the
+    # generic error swallowed by the broad except. Cap dropped below 8×8.
+    monkeypatch.setattr(sanitize_mod, "MAX_PIXELS", 10)
+    reply = AsyncMock()
+    update = _make_photo_update(reply)
+    ctx = await _context_downloading(tiny_jpeg)
+
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
+        await _handle_media(update, ctx)
+
+    reply.assert_awaited_once_with(_MSG_TOO_LARGE_DIMS)
 
 
 # ── build_app wiring ──────────────────────────────────────────────────────────

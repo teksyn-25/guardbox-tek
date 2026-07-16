@@ -17,7 +17,22 @@ class CorruptedInput(ValueError):
     """Format recognised from magic bytes but pyvips failed to decode it."""
 
 
+class ImageTooLarge(ValueError):
+    """Decoded image exceeds the maximum pixel count (decompression-bomb guard).
+
+    Distinct from the byte-size limits enforced at intake (25 MB upload / 20 MB
+    Telegram): this is about *decoded* dimensions, which a small crafted file can
+    blow up far beyond its on-disk size.
+    """
+
+
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+
+# Max decoded pixels (width × height). 100 MP sits above real phone cameras
+# (iPhone ProRAW tops out at 48 MP; 108/200 MP Android sensors downscale below
+# this) yet blocks decompression bombs — a tiny file that expands to a huge
+# canvas — before the pixels are materialised by the PNG re-encode.
+MAX_PIXELS = 100_000_000
 
 # Decode ONLY via the loader for the detected format. Never new_from_buffer(data, "")
 # — auto-detect would let libvips pick any loader (SVG/PDF via delegates) regardless
@@ -72,6 +87,13 @@ def sanitize(file_bytes: bytes) -> tuple[bytes, dict]:
         image = load(file_bytes)
     except pyvips.Error as exc:
         raise CorruptedInput(f"failed to decode {source_format}: {exc}") from exc
+
+    # width/height are header-only for these loaders, so this fires before the
+    # PNG re-encode ever materialises the pixels — the point of the guard.
+    if image.width * image.height > MAX_PIXELS:
+        raise ImageTooLarge(
+            f"image exceeds {MAX_PIXELS} px limit: {image.width}x{image.height}"
+        )
 
     stripped = _stripped_categories(image.get_fields())
 

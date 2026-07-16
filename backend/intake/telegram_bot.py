@@ -11,7 +11,7 @@ import logging
 import os
 
 from admin_auth import OWNER_ID
-from cdr.sanitize import CorruptedInput, UnsupportedFileType
+from cdr.sanitize import CorruptedInput, ImageTooLarge, UnsupportedFileType
 from intake._pipeline import process_file_bytes
 from storage import get_storage
 from telegram import Update
@@ -27,6 +27,7 @@ _MSG_UNSUPPORTED = (
 )
 _MSG_CORRUPTED = "The file appears corrupted and could not be processed."
 _MSG_TOO_LARGE = "File exceeds the 20 MB limit."
+_MSG_TOO_LARGE_DIMS = "Image dimensions exceed the limit and could not be processed."
 _MSG_ERROR = "Something went wrong. Please try again."
 
 
@@ -56,6 +57,8 @@ async def _handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await update.message.reply_text(_MSG_UNSUPPORTED)
     except CorruptedInput:
         await update.message.reply_text(_MSG_CORRUPTED)
+    except ImageTooLarge:
+        await update.message.reply_text(_MSG_TOO_LARGE_DIMS)
     except Exception:  # pylint: disable=broad-exception-caught
         logger.exception("Unhandled error processing media")
         await update.message.reply_text(_MSG_ERROR)

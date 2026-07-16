@@ -13,10 +13,16 @@ from fastapi.testclient import TestClient
 
 pyvips = pytest.importorskip("pyvips")
 
+import sys
+
 from api.middleware import sign_token
 from app import app
+from cdr.sanitize import sanitize  # noqa: F401 — registers cdr.sanitize in sys.modules
 from storage import get_storage
 from storage.local import LocalStorage
+
+# The module object — NOT `import cdr.sanitize`, whose `.sanitize` attr is the shadowing fn.
+sanitize_mod = sys.modules["cdr.sanitize"]
 
 _USER = "upload_user"
 
@@ -142,3 +148,10 @@ def test_upload_corrupted_file_returns_422(client, auth, tiny_jpeg):
 def test_upload_oversized_file_returns_413(client, auth):
     big = b"\xff\xd8\xff" + b"\x00" * (25 * 1024 * 1024 + 1)
     assert _upload(client, auth, big, "big.jpg").status_code == 413
+
+
+def test_upload_oversized_dimensions_returns_413(client, auth, tiny_jpeg, monkeypatch):
+    # Decompression-bomb guard: an image whose decoded pixels exceed the cap is
+    # rejected with 413, not an unhandled 500. Cap monkeypatched below the 8×8 fixture.
+    monkeypatch.setattr(sanitize_mod, "MAX_PIXELS", 10)
+    assert _upload(client, auth, tiny_jpeg).status_code == 413

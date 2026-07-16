@@ -4,7 +4,18 @@ import pytest
 
 pyvips = pytest.importorskip("pyvips")
 
-from cdr.sanitize import CorruptedInput, UnsupportedFileType, sanitize
+import sys
+
+from cdr.sanitize import (
+    CorruptedInput,
+    ImageTooLarge,
+    UnsupportedFileType,
+    sanitize,
+)
+
+# The module object — NOT `import cdr.sanitize`, whose `.sanitize` attr is the
+# shadowing function (cdr/__init__.py does `from .sanitize import sanitize`).
+sanitize_mod = sys.modules["cdr.sanitize"]
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
@@ -143,6 +154,23 @@ def test_jpeg_decoded_by_jpeg_loader(tiny_jpeg):
     ) as spy:
         sanitize(tiny_jpeg)
     spy.assert_called_once()
+
+
+# ── decompression-bomb guard ──────────────────────────────────────────────────
+# MAX_PIXELS is monkeypatched down so the guard is exercised against the tiny 8×8
+# fixture — no large image is ever constructed (no OOM in the test itself).
+
+
+def test_oversized_image_raises_image_too_large(tiny_jpeg, monkeypatch):
+    monkeypatch.setattr(sanitize_mod, "MAX_PIXELS", 10)  # 8×8 = 64 > 10
+    with pytest.raises(ImageTooLarge):
+        sanitize(tiny_jpeg)
+
+
+def test_image_at_exact_limit_is_accepted(tiny_jpeg, monkeypatch):
+    monkeypatch.setattr(sanitize_mod, "MAX_PIXELS", 64)  # 8×8 = 64, not over
+    out, _ = sanitize(tiny_jpeg)
+    assert out[:8] == _PNG_MAGIC
 
 
 # ── invariants ────────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ Source tagged 'share_sheet'. No filename, size, or timestamp is retained.
 """
 
 from api.middleware import require_user
-from cdr.sanitize import CorruptedInput, UnsupportedFileType
+from cdr.sanitize import CorruptedInput, ImageTooLarge, UnsupportedFileType
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from intake._pipeline import process_file_bytes
 from storage import get_storage
@@ -39,5 +39,9 @@ async def upload_file(
     except CorruptedInput as exc:
         raise HTTPException(
             status_code=422, detail="File appears corrupted and could not be processed."
+        ) from exc
+    except ImageTooLarge as exc:
+        raise HTTPException(
+            status_code=413, detail="Image dimensions exceed the allowed limit."
         ) from exc
     return {"file_id": metadata["file_id"]}

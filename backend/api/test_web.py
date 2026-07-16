@@ -5,12 +5,18 @@ Auth uses HttpOnly cookie (gb_session). HTMX requests carry HX-Request: true.
 Storage is overridden with a real LocalStorage backed by tmp_path.
 """
 
+import sys
+
 import pytest
 from api.middleware import sign_token
 from app import app
+from cdr.sanitize import sanitize  # noqa: F401 — registers cdr.sanitize in sys.modules
 from fastapi.testclient import TestClient
 from storage import get_storage
 from storage.local import LocalStorage
+
+# The module object — NOT `import cdr.sanitize`, whose `.sanitize` attr is the shadowing fn.
+sanitize_mod = sys.modules["cdr.sanitize"]
 
 _USER = "web_test_user"
 _SESSION_SECRET = "test-secret-do-not-use"
@@ -452,6 +458,23 @@ def test_upload_too_large_returns_error(client, session_cookie):
     )
     assert r.status_code == 200
     assert "25 MB" in r.text
+
+
+def test_upload_oversized_dimensions_returns_error(client, session_cookie, monkeypatch):
+    # Decompression-bomb guard: over-pixel image renders the error partial (200),
+    # not an unhandled 500. Cap dropped below the 8×8 fixture.
+    import pyvips
+
+    monkeypatch.setattr(sanitize_mod, "MAX_PIXELS", 10)
+    tiny = pyvips.Image.black(8, 8, bands=3).write_to_buffer(".png")
+    r = client.post(
+        "/upload",
+        files={"file": ("img.png", tiny, "image/png")},
+        cookies=session_cookie,
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "dimensions" in r.text.lower()
 
 
 def test_upload_non_htmx_redirects_home(client, session_cookie, tiny_png):
