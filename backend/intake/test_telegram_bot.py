@@ -17,6 +17,7 @@ pyvips = pytest.importorskip("pyvips")
 
 import sys
 
+from admin_auth import OWNER_ID
 from cdr.sanitize import CorruptedInput, UnsupportedFileType
 from intake._pipeline import process_file_bytes
 from intake.telegram_bot import (
@@ -26,6 +27,7 @@ from intake.telegram_bot import (
     _MSG_OK,
     _MSG_TOO_LARGE,
     _MSG_TOO_LARGE_DIMS,
+    _MSG_UNAUTHORIZED,
     _MSG_UNSUPPORTED,
     _handle_media,
     build_app,
@@ -36,6 +38,14 @@ from storage.local import LocalStorage
 sanitize_mod = sys.modules["cdr.sanitize"]
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _owner_env(monkeypatch):
+    # _make_update() sets effective_user.id == 42; authorise that sender by
+    # default so the handler tests exercise the happy path. Individual auth
+    # tests override or clear this.
+    monkeypatch.setenv("TELEGRAM_OWNER_ID", "42")
 
 
 @pytest.fixture(scope="module")
@@ -240,6 +250,59 @@ async def test_photo_handler_replies_too_large_dims_on_bomb(
         await _handle_media(update, ctx)
 
     reply.assert_awaited_once_with(_MSG_TOO_LARGE_DIMS)
+
+
+# ── sender authorization ──────────────────────────────────────────────────────
+
+
+async def test_unauthorized_sender_is_rejected(tiny_jpeg, tmp_path, monkeypatch):
+    # Sender 42 is not in the allowlist (owner is 999) → private-instance reply,
+    # and the file is never downloaded or stored.
+    monkeypatch.setenv("TELEGRAM_OWNER_ID", "999")
+    reply = AsyncMock()
+    update = _make_photo_update(reply)
+    ctx = await _context_downloading(tiny_jpeg)
+    storage = LocalStorage(root=str(tmp_path))
+
+    with patch("intake.telegram_bot.get_storage", return_value=storage):
+        await _handle_media(update, ctx)
+
+    reply.assert_awaited_once_with(_MSG_UNAUTHORIZED)
+    ctx.bot.get_file.assert_not_awaited()
+    assert storage.list(OWNER_ID, "pending") == []
+
+
+async def test_unset_owner_rejects_all_senders(tiny_jpeg, tmp_path, monkeypatch):
+    # Fail-closed: with no TELEGRAM_OWNER_ID configured, nobody is authorised.
+    monkeypatch.delenv("TELEGRAM_OWNER_ID", raising=False)
+    reply = AsyncMock()
+    update = _make_photo_update(reply)
+    ctx = await _context_downloading(tiny_jpeg)
+
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
+        await _handle_media(update, ctx)
+
+    reply.assert_awaited_once_with(_MSG_UNAUTHORIZED)
+    ctx.bot.get_file.assert_not_awaited()
+
+
+async def test_authorized_sender_in_multi_id_allowlist_is_processed(
+    tiny_jpeg, tmp_path, monkeypatch
+):
+    # Allowlist may hold several IDs (comma-separated); sender 42 is one of them.
+    monkeypatch.setenv("TELEGRAM_OWNER_ID", "7, 42 , 100")
+    reply = AsyncMock()
+    update = _make_photo_update(reply)
+    ctx = await _context_downloading(tiny_jpeg)
+
+    with patch(
+        "intake.telegram_bot.get_storage", return_value=LocalStorage(root=str(tmp_path))
+    ):
+        await _handle_media(update, ctx)
+
+    reply.assert_awaited_once_with(_MSG_OK)
 
 
 # ── build_app wiring ──────────────────────────────────────────────────────────

@@ -29,6 +29,34 @@ _MSG_CORRUPTED = "The file appears corrupted and could not be processed."
 _MSG_TOO_LARGE = "File exceeds the 20 MB limit."
 _MSG_TOO_LARGE_DIMS = "Image dimensions exceed the limit and could not be processed."
 _MSG_ERROR = "Something went wrong. Please try again."
+_MSG_UNAUTHORIZED = (
+    "This GuardBox instance is private. You are not authorised to use it."
+)
+
+
+# ── sender authorization ──────────────────────────────────────────────────────
+
+
+def _owner_ids() -> set[int]:
+    """Allowlisted Telegram user IDs from TELEGRAM_OWNER_ID (comma-separated).
+
+    Empty/unset ⇒ empty set ⇒ nobody is authorised (fail-closed). Non-integer
+    entries are ignored rather than crashing the handler.
+    """
+    ids: set[int] = set()
+    for part in os.getenv("TELEGRAM_OWNER_ID", "").split(","):
+        part = part.strip()
+        if part:
+            try:
+                ids.add(int(part))
+            except ValueError:
+                continue
+    return ids
+
+
+def _authorized(update: Update) -> bool:
+    user = update.effective_user
+    return user is not None and user.id in _owner_ids()
 
 
 # ── Telegram handler ──────────────────────────────────────────────────────────
@@ -38,6 +66,9 @@ async def _handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if update.message is None:
         return
     msg = update.message
+    if not _authorized(update):
+        await msg.reply_text(_MSG_UNAUTHORIZED)
+        return
     if msg.photo:
         tg_file_id = msg.photo[-1].file_id
     elif msg.document:
