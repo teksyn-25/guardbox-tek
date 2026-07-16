@@ -19,6 +19,15 @@ class CorruptedInput(ValueError):
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
+# Decode ONLY via the loader for the detected format. Never new_from_buffer(data, "")
+# — auto-detect would let libvips pick any loader (SVG/PDF via delegates) regardless
+# of the magic-byte whitelist, which a polyglot could abuse.
+_LOADERS = {
+    "jpeg": "jpegload_buffer",
+    "png": "pngload_buffer",
+    "webp": "webpload_buffer",
+}
+
 
 def _detect_format(data: bytes) -> str:
     if data[:3] == b"\xff\xd8\xff":
@@ -58,8 +67,9 @@ def sanitize(file_bytes: bytes) -> tuple[bytes, dict]:
     """
     source_format = _detect_format(file_bytes)
 
+    load = getattr(pyvips.Image, _LOADERS[source_format])
     try:
-        image = pyvips.Image.new_from_buffer(file_bytes, "")
+        image = load(file_bytes)
     except pyvips.Error as exc:
         raise CorruptedInput(f"failed to decode {source_format}: {exc}") from exc
 

@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 pyvips = pytest.importorskip("pyvips")
@@ -103,6 +105,44 @@ def test_strip_report_output_format_always_png(tiny_jpeg):
 def test_strip_report_dimensions_match_input(tiny_jpeg):
     _, report = sanitize(tiny_jpeg)
     assert report["dimensions"] == [8, 8]
+
+
+# ── loader confinement ────────────────────────────────────────────────────────
+# new_from_buffer(data, "") lets libvips auto-pick ANY loader (SVG/PDF via
+# delegates) *after* the magic-byte check — a polyglot could be decoded as a
+# non-whitelisted type. sanitize must decode via the format-specific loader only.
+
+
+def test_jpeg_not_decoded_via_autodetect(tiny_jpeg):
+    with patch.object(
+        pyvips.Image, "new_from_buffer", side_effect=AssertionError("autodetect used")
+    ):
+        out, _ = sanitize(tiny_jpeg)
+    assert out[:8] == _PNG_MAGIC
+
+
+def test_png_not_decoded_via_autodetect(tiny_png):
+    with patch.object(
+        pyvips.Image, "new_from_buffer", side_effect=AssertionError("autodetect used")
+    ):
+        out, _ = sanitize(tiny_png)
+    assert out[:8] == _PNG_MAGIC
+
+
+def test_webp_not_decoded_via_autodetect(tiny_webp):
+    with patch.object(
+        pyvips.Image, "new_from_buffer", side_effect=AssertionError("autodetect used")
+    ):
+        out, _ = sanitize(tiny_webp)
+    assert out[:8] == _PNG_MAGIC
+
+
+def test_jpeg_decoded_by_jpeg_loader(tiny_jpeg):
+    with patch.object(
+        pyvips.Image, "jpegload_buffer", wraps=pyvips.Image.jpegload_buffer
+    ) as spy:
+        sanitize(tiny_jpeg)
+    spy.assert_called_once()
 
 
 # ── invariants ────────────────────────────────────────────────────────────────
