@@ -31,6 +31,9 @@ def _env(monkeypatch, tmp_path):
     monkeypatch.setenv("SESSION_SECRET", _SESSION_SECRET)
     monkeypatch.setenv("STORAGE_ROOT", str(tmp_path))
     monkeypatch.setenv("SESSION_SECURE_COOKIE", "false")
+    import rate_limit
+
+    rate_limit.reset()  # throttle state is a process global; isolate each test
     from admin_auth import set_password
 
     set_password(_PASSWORD)  # default state: password already configured
@@ -157,6 +160,19 @@ def test_auth_login_wrong_password_returns_401(client):
 def test_auth_login_wrong_password_shows_error(client):
     r = client.post("/auth/login", data={"password": "wrongpassword"})
     assert "Incorrect" in r.text
+
+
+def test_auth_login_wrong_password_applies_progressive_delay(client, monkeypatch):
+    # 2nd consecutive miss awaits 0.25s (1st is free) — brute-force throttle.
+    slept = []
+
+    async def _fake_sleep(seconds):
+        slept.append(seconds)
+
+    monkeypatch.setattr("api.web.asyncio.sleep", _fake_sleep)
+    client.post("/auth/login", data={"password": "wrongpassword"})  # 1st → 0s
+    client.post("/auth/login", data={"password": "wrongpassword"})  # 2nd → 0.25s
+    assert slept == [0.25]
 
 
 # ── POST /auth/logout ─────────────────────────────────────────────────────────

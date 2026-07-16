@@ -6,6 +6,9 @@ POST /api/auth/setup   — first-run only: set the password, returns Bearer toke
 POST /api/auth         — login with password, returns Bearer token
 """
 
+import time
+
+import rate_limit
 from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import sign_token
 from fastapi import APIRouter, HTTPException
@@ -47,5 +50,9 @@ def login(payload: PasswordLoginPayload) -> dict:
     if not is_setup_done():
         raise HTTPException(status_code=428, detail="setup_required")
     if not verify_password(payload.password):
+        delay = rate_limit.record_failure()
+        if delay:
+            time.sleep(delay)
         raise HTTPException(status_code=401, detail="Invalid password")
+    rate_limit.record_success()
     return {"token": sign_token(OWNER_ID)}

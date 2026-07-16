@@ -9,9 +9,11 @@ Navigation: HTMX swaps #main-content; Alpine.js controls the viewer modal.
 REST API remains at /api/* (for Flutter mobile app).
 """
 
+import asyncio
 import uuid
 from pathlib import Path
 
+import rate_limit
 from admin_auth import OWNER_ID, is_setup_done, set_password, verify_password
 from api.middleware import SESSION_MAX_AGE, SESSION_SECURE, sign_token, verify_token
 from cdr.sanitize import CorruptedInput, ImageTooLarge, UnsupportedFileType, sanitize
@@ -130,12 +132,16 @@ async def auth_login_post(
     if not is_setup_done():
         return RedirectResponse("/setup", status_code=302)
     if not verify_password(password):
+        delay = rate_limit.record_failure()
+        if delay:
+            await asyncio.sleep(delay)
         return templates.TemplateResponse(
             request,
             "login.html",
             {"error": "Incorrect password."},
             status_code=401,
         )
+    rate_limit.record_success()
     r = RedirectResponse("/", status_code=303)
     _set_session(r, sign_token(OWNER_ID))
     return r

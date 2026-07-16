@@ -6,6 +6,7 @@ Tests for REST auth endpoints:
 """
 
 import pytest
+import rate_limit
 from app import app
 from fastapi.testclient import TestClient
 
@@ -19,6 +20,7 @@ _SHORT = "short"
 def _env(monkeypatch, tmp_path):
     monkeypatch.setenv("SESSION_SECRET", "test-session-secret")
     monkeypatch.setenv("STORAGE_ROOT", str(tmp_path))
+    rate_limit.reset()  # throttle state is a process global; isolate each test
 
 
 # ── GET /api/auth/status ──────────────────────────────────────────────────────
@@ -114,3 +116,34 @@ def test_login_wrong_password_returns_401():
 def test_login_missing_field_returns_422():
     client.post("/api/auth/setup", json={"password": _PASSWORD})
     assert client.post("/api/auth", json={}).status_code == 422
+
+
+# ── brute-force throttle (progressive delay) ──────────────────────────────────
+
+
+def test_wrong_password_applies_progressive_delay(monkeypatch):
+    """
+    SECURITY BOUNDARY: Brute-force resistance
+
+    Threat: Attacker rapidly submits many password guesses.
+    Expected: Each consecutive wrong guess incurs a growing delay — the 2nd miss
+    sleeps 0.25s (the 1st is free) — slowing an automated attack.
+    """
+    slept = []
+    monkeypatch.setattr("api.auth.time.sleep", slept.append)
+    client.post("/api/auth/setup", json={"password": _PASSWORD})
+    client.post("/api/auth", json={"password": "wrong"})  # 1st miss → 0s
+    client.post("/api/auth", json={"password": "wrong"})  # 2nd miss → 0.25s
+    assert slept == [0.25]
+
+
+def test_correct_password_resets_the_delay(monkeypatch):
+    """A successful login clears the counter so the owner is never penalised."""
+    slept = []
+    monkeypatch.setattr("api.auth.time.sleep", slept.append)
+    client.post("/api/auth/setup", json={"password": _PASSWORD})
+    client.post("/api/auth", json={"password": "wrong"})  # 1st miss → 0s
+    client.post("/api/auth", json={"password": "wrong"})  # 2nd miss → 0.25s
+    client.post("/api/auth", json={"password": _PASSWORD})  # success → reset
+    client.post("/api/auth", json={"password": "wrong"})  # miss again → 0s
+    assert slept == [0.25]
