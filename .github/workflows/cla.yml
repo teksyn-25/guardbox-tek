@@ -34,4 +34,4 @@ jobs:
           # Signatures MUST live on an unprotected branch: master is protected
           # (required status checks), so the bot cannot commit there directly.
           branch: cla-signatures
-          # allowlist temporarily removed for CLA smoke test — RESTORE after
+          allowlist: teksyn-25
