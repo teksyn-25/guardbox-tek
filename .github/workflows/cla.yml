@@ -32,4 +32,4 @@ jobs:
           path-to-signatures: signatures/cla.json
           path-to-document: https://github.com/teksyn-25/guardbox-tek/blob/master/docs/CLA.md
           branch: master
-          allowlist: teksyn-25
+          # allowlist temporarily removed for CLA smoke test — RESTORE after
