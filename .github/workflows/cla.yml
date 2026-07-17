@@ -31,5 +31,7 @@ jobs:
         with:
           path-to-signatures: signatures/cla.json
           path-to-document: https://github.com/teksyn-25/guardbox-tek/blob/master/docs/CLA.md
-          branch: master
+          # Signatures MUST live on an unprotected branch: master is protected
+          # (required status checks), so the bot cannot commit there directly.
+          branch: cla-signatures
           # allowlist temporarily removed for CLA smoke test — RESTORE after
