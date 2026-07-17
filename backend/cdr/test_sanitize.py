@@ -180,3 +180,23 @@ def test_original_bytes_not_mutated(tiny_jpeg):
     snapshot = bytearray(tiny_jpeg)
     sanitize(tiny_jpeg)
     assert bytes(snapshot) == tiny_jpeg
+
+
+# ── package public API ────────────────────────────────────────────────────────
+# The cdr package must re-export every CDR exception so callers can `from cdr
+# import ImageTooLarge`. A missing re-export slips through unnoticed because the
+# intake modules import from cdr.sanitize directly — this test guards that gap.
+
+
+def test_cdr_package_reexports_all_exceptions():
+    import cdr
+
+    assert cdr.ImageTooLarge is sanitize_mod.ImageTooLarge
+    assert cdr.CorruptedInput is sanitize_mod.CorruptedInput
+    assert cdr.UnsupportedFileType is sanitize_mod.UnsupportedFileType
+    assert set(cdr.__all__) >= {
+        "sanitize",
+        "UnsupportedFileType",
+        "CorruptedInput",
+        "ImageTooLarge",
+    }
