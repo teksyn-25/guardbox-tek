@@ -3,7 +3,6 @@ Tests for the ephemeral login throttle (progressive delay, no lockout).
 """
 
 import pytest
-
 import rate_limit
 
 
