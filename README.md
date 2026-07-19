@@ -15,6 +15,8 @@ When you receive a file in WhatsApp or Telegram, GuardBox fetches it before it t
 
 v1.0 code is ready — Telegram fetch is live. v1.1 code is in progress — WhatsApp intake via Flutter. Both v1.0 and v1.1 are database-less: files are stored on your Linux server, isolated from your device.
 
+> 📋 **[Status & Roadmap →](ROADMAP.md)** — 30-second overview of what's built, in progress, and funded next (incl. security maturity).
+
 **Open-core · AGPL-3.0 · EU-hosted**
 
 ---
