@@ -8,22 +8,9 @@ Output is always PNG. Only whitelisted pixel content survives — metadata does 
 
 import pyvips
 
+from .exceptions import CorruptedInput, ImageTooLarge, UnsupportedFileType
 
-class UnsupportedFileType(ValueError):
-    """Magic bytes don't match any supported image format."""
-
-
-class CorruptedInput(ValueError):
-    """Format recognised from magic bytes but pyvips failed to decode it."""
-
-
-class ImageTooLarge(ValueError):
-    """Decoded image exceeds the maximum pixel count (decompression-bomb guard).
-
-    Distinct from the byte-size limits enforced at intake (25 MB upload / 20 MB
-    Telegram): this is about *decoded* dimensions, which a small crafted file can
-    blow up far beyond its on-disk size.
-    """
+__all__ = ["sanitize", "UnsupportedFileType", "CorruptedInput", "ImageTooLarge"]
 
 
 _PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
