@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GuardBox — Milestone &amp; Budget Breakdown</title>
+<style>
+  @page { margin: 2cm; }
+  body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #111; max-width: 19cm; margin: 1em auto; padding: 0 1em; }
+  h1 { font-size: 17pt; border-bottom: 2px solid #333; padding-bottom: 6px; }
+  h2 { font-size: 12.5pt; margin-top: 1.4em; }
+  table { border-collapse: collapse; width: 60%; font-size: 10pt; margin: 0.7em 0; }
+  th, td { border: 1px solid #999; padding: 5px 9px; text-align: left; }
+  th { background: #eee; }
+  td.num, th.num { text-align: right; }
+  p.meta { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>GuardBox — Milestone &amp; Budget Breakdown</h1>
+
+<p><strong>Requested: €40,000 · 80 person-days @ €500/day · 4 milestones.</strong> Each milestone is a concrete, independently verifiable deliverable (NLnet pays per completed milestone).</p>
+
+<h2>M1 — Sandbox hardening — €10,000 <em>(security engineering, 20 days)</em></h2>
+<p class="meta"><strong>Deliverable:</strong> a tested, rigorous isolation baseline.</p>
+<p class="meta"><strong>Sub-tasks:</strong> default-deny seccomp <strong>allowlist</strong> (empirically traced across all CDR code paths); AppArmor profile; ephemeral per-file isolation (disposable, network-none container per job); published threat model.</p>
+<p class="meta"><strong>Acceptance criteria:</strong> seccomp <code>defaultAction: deny</code> with CI tests asserting the allowlist <em>and</em> that JPEG/PNG/WebP decoding still works; AppArmor profile loads; each CDR job demonstrably runs in a fresh, network-less, destroyed-after container; threat model published in-repo.</p>
+
+<h2>M2 — Memory-safe CDR core (Rust) — €14,000 <em>(backend/Rust development, 28 days)</em></h2>
+<p class="meta"><strong>Deliverable:</strong> the parser rewritten in Rust, removing the memory-corruption bug class.</p>
+<p class="meta"><strong>Sub-tasks:</strong> Rust decode→strip→re-encode for JPEG/PNG/WebP; PyO3 binding; byte-parity test suite against the current libvips engine.</p>
+<p class="meta"><strong>Acceptance criteria:</strong> Rust core callable from the service via PyO3; parity tests pass (identical inputs → equivalent clean outputs); fuzz/regression corpus runs with no memory-safety errors.</p>
+
+<h2>M3 — Micro-VM isolation prototype — €8,000 <em>(infrastructure/security, 16 days)</em></h2>
+<p class="meta"><strong>Deliverable:</strong> hardware-virtualised per-file containment prototype.</p>
+<p class="meta"><strong>Sub-tasks:</strong> run a CDR job inside a Firecracker/Kata micro-VM; measure latency and overhead versus the container path.</p>
+<p class="meta"><strong>Acceptance criteria:</strong> working prototype processes a file end-to-end inside a micro-VM; benchmark report (latency, memory, boot time) published.</p>
+
+<h2>M4 — Secure intake hardening — €8,000 <em>(mobile + frontend, 16 days)</em></h2>
+<p class="meta"><strong>Deliverable:</strong> intake-side gaps closed on mobile and web.</p>
+<p class="meta"><strong>Sub-tasks:</strong> mobile share-sheet handler that streams bytes to the backend without ever writing the original to app storage; hardened web-viewer containment; end-to-end test suite; security documentation.</p>
+<p class="meta"><strong>Acceptance criteria:</strong> share handler shown (via instrumentation) never to persist the original; viewer containment documented; E2E tests pass in CI.</p>
+
+<h2>Summary</h2>
+<table>
+<tr><th>Milestone</th><th class="num">Days</th><th class="num">€</th></tr>
+<tr><td>M1 Sandbox hardening</td><td class="num">20</td><td class="num">10,000</td></tr>
+<tr><td>M2 Rust CDR core</td><td class="num">28</td><td class="num">14,000</td></tr>
+<tr><td>M3 Micro-VM prototype</td><td class="num">16</td><td class="num">8,000</td></tr>
+<tr><td>M4 Intake hardening</td><td class="num">16</td><td class="num">8,000</td></tr>
+<tr><th>Total</th><th class="num">80</th><th class="num">40,000</th></tr>
+</table>
+
+<p class="meta"><strong>Rate:</strong> €500/day, made explicit per NLnet guidance.</p>
+<p class="meta"><strong>Independent security audit:</strong> not budgeted — we request it through NLnet's grantee support services (e.g. NGI Zero Review), keeping this proposal lean.</p>
+<p class="meta"><strong>Other funding:</strong> none past or present; a planned community crowdfunding campaign funds general development and outreach only — not these milestones (no double funding).</p>
+<p class="meta"><strong>License:</strong> all outputs AGPL-3.0.</p>
+
+</body>
+</html>
