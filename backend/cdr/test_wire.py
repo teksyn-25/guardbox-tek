@@ -13,7 +13,12 @@ def _stream(data: bytes) -> io.BytesIO:
 
 
 def test_success_round_trip_carries_report_and_bytes():
-    report = {"source_format": "jpeg", "stripped": ["EXIF"], "output_format": "png", "dimensions": [8, 8]}
+    report = {
+        "source_format": "jpeg",
+        "stripped": ["EXIF"],
+        "output_format": "png",
+        "dimensions": [8, 8],
+    }
     png_bytes = b"\x89PNG\r\n\x1a\n" + b"fake-png-data"
 
     encoded = encode_success(report, png_bytes)
@@ -34,7 +39,13 @@ def test_success_with_empty_png_bytes():
 
 @pytest.mark.parametrize(
     "error_type",
-    ["UnsupportedFileType", "CorruptedInput", "ImageTooLarge", "InternalError", "OrchestratorError"],
+    [
+        "UnsupportedFileType",
+        "CorruptedInput",
+        "ImageTooLarge",
+        "InternalError",
+        "OrchestratorError",
+    ],
 )
 def test_error_round_trip_each_known_type(error_type):
     encoded = encode_error(error_type, "something went wrong")
