@@ -44,7 +44,7 @@ Registers GuardBox as a share target for image files. This is what makes "GuardB
 
 ## `flutterEmbedding` meta-data
 
-Required by Flutter's embedding layer. Without it, Flutter's plugin system does not initialize correctly and all plugins (including `receive_sharing_intent`) will fail silently.
+Required by Flutter's embedding layer. Without it, Flutter's plugin system does not initialize correctly and all plugins (including `file_picker`) will fail silently.
 
 ---
 

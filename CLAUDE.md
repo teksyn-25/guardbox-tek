@@ -204,7 +204,7 @@ browser viewer — the original file never reaches your phone."* Do not claim ab
 | "Never in WhatsApp's sandbox" | ❌ FALSE | WhatsApp downloads the file to its private app sandbox in order to make it shareable. Outside GuardBox's control. |
 | "Never on the device's disk at all" | ❌ FALSE | WhatsApp's sandbox is on disk, just walled off from other apps and the gallery. The strict version cannot be honored in the share-sheet model. |
 | "Never decoded by any app other than WhatsApp's own download handler" | ✅ TRUE | GuardBox treats the bytes as opaque and streams them — never invokes an image parser on the original. The security-meaningful claim. |
-| "GuardBox itself never saves the original to disk" | ✅ TRUE | True *only if* the Flutter share handler streams bytes rather than caches them (see code-level rule below). |
+| "GuardBox itself never saves the original to disk" | ✅ TRUE | Enforced by `ShareIntentReader.kt` (native Android) and `share_handler.dart` (Dart) — see code-level rule below. |
 | "Never exposed to other apps, gallery, or file managers" | ✅ TRUE | WhatsApp's sandbox is private to WhatsApp; GuardBox never copies it elsewhere. |
 
 **Use in copy:** *"GuardBox doesn't save the original to your gallery, doesn't keep
@@ -245,6 +245,12 @@ The share handler must **stream incoming file bytes directly from the OS share
 intent to the backend upload endpoint**. Never use any approach that writes the file
 to GuardBox's app cache or temp storage before upload.
 The bytes pass through device memory only, never to GuardBox-owned disk storage.
+
+Enforcement point (Android): `mobile/android/app/src/main/kotlin/com/guardbox/guardbox/ShareIntentReader.kt`
+reads the share intent's `content://` URI straight into memory via `ContentResolver.openInputStream()` —
+no `File`/`FileOutputStream`/`cacheDir` reference anywhere in the class — and hands the bytes to
+`mobile/lib/services/share_handler.dart` over an `EventChannel`. See `mobile/share-sheet-intake.md` for
+the full flow.
 
 ---
 
