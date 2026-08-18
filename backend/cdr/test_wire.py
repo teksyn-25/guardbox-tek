@@ -1,7 +1,6 @@
 import io
 
 import pytest
-
 from cdr.wire import WireError, encode_error, encode_success, read_message
 
 
