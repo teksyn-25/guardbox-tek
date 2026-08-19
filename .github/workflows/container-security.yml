@@ -2,6 +2,9 @@ name: Container Security
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   container-security:
     runs-on: ubuntu-latest
