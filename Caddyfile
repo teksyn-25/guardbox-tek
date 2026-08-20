@@ -1,12 +1,19 @@
 # GuardBox reverse proxy
 # Caddy terminates TLS and forwards to the API container.
-# - tls internal: Caddy issues its own CA cert (no public domain needed).
-#   Install Caddy's root CA on client devices to avoid browser warnings:
+# - tls internal + on_demand: Caddy issues its own CA cert on the fly for
+#   whatever hostname/IP a client connects with (localhost, a LAN IP, a
+#   self-hosted domain) — no public domain needed. Without "on_demand",
+#   Caddy has no site address to bind an auto-issued cert to and refuses
+#   every SNI with "no certificate available".
+#   Install Caddy's root CA on client devices to avoid trust warnings:
 #   https://caddyserver.com/docs/automatic-https#local-https
-# - To use a public CA (Let's Encrypt), replace ":443" with your domain name.
+# - To use a public CA (Let's Encrypt) instead, replace ":443" with your
+#   domain name and drop "tls internal { on_demand }".
 
 :443 {
-    tls internal
+    tls internal {
+        on_demand
+    }
     reverse_proxy api:8000
 }
 
