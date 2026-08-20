@@ -29,16 +29,15 @@ Android share sheet — GuardBox appears
 Flutter app opens / comes to foreground
         │
         ▼
-ShareIntentReader.kt (native Android)
-opens the content:// URI via ContentResolver.openInputStream()
-straight into an in-memory ByteArray — no File/FileOutputStream/
-cacheDir reference anywhere in this class
+receive_sharing_intent plugin
+writes temp copy to Flutter's private app cache
+(NOT gallery — not accessible to other apps)
         │
-        │  EventChannel: one event per share intent
         ▼
 share_handler.dart
-  1. receives bytes over the EventChannel
-  2. api.uploadFile(bytes)   ← no filename transmitted
+  1. reads bytes into memory
+  2. File(path).delete()     ← temp file deleted immediately
+  3. api.uploadFile(bytes)   ← no filename transmitted
         │
         ▼
 Backend: CDR sanitise → storage.save()
@@ -52,8 +51,7 @@ Flutter dashboard — clean reconstructed PNG shown
 - The original file never reaches the gallery or file manager.
 - No other app on the device can read the file during this flow.
 - GuardBox never stores the original filename, file size, or timestamp.
-- GuardBox's own code never writes the file to disk at any point — bytes
-  go straight from `ContentResolver.openInputStream()` into memory.
+- The temp copy in Flutter's cache is deleted before upload begins.
 
 ## What WhatsApp does (outside GuardBox's control)
 
@@ -67,8 +65,6 @@ With auto-download OFF, this only happens when you explicitly choose to share.
 | What | Where |
 |---|---|
 | Share intent registration | `android/app/src/main/AndroidManifest.xml` |
-| Native intent reader (content:// URI → in-memory bytes, no disk) | `android/app/src/main/kotlin/com/guardbox/guardbox/ShareIntentReader.kt` |
-| Activity wiring (feeds intents to the reader) | `android/app/src/main/kotlin/com/guardbox/guardbox/MainActivity.kt` |
-| Share handler (EventChannel → upload) | `lib/services/share_handler.dart` |
+| Share handler (bytes → delete temp → upload) | `lib/services/share_handler.dart` |
 | Upload client (no filename in multipart) | `lib/services/api_client.dart` — `uploadFile()` |
 | Backend CDR + storage | `backend/cdr/sanitize.py`, `backend/intake/upload.py` |
