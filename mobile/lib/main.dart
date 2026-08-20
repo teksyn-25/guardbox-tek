@@ -31,11 +31,19 @@ class _GuardBoxAppState extends State<GuardBoxApp> {
   }
 
   void _initShareHandler() async {
-    final url = await getServerUrl();
-    final token = await getToken();
-    if (url == null || token == null) return;
-    final api = ApiClient(baseUrl: url, token: token);
-    ShareHandlerService.init(navigatorKey, api.uploadFile);
+    try {
+      final url = await getServerUrl();
+      final token = await getToken();
+      if (url == null || token == null) return;
+      final api = ApiClient(baseUrl: url, token: token);
+      ShareHandlerService.init(navigatorKey, api.uploadFile);
+    } catch (_) {
+      // Reading stored credentials failed (e.g. a secure-storage read
+      // error on this device) — share-sheet intake just won't be wired
+      // up this session. Not fatal: the user can still open the app
+      // normally and use it; _StartupRouter handles the same failure
+      // for the main navigation path separately.
+    }
   }
 
   @override
@@ -64,6 +72,12 @@ class _StartupRouter extends StatelessWidget {
     return FutureBuilder<Widget>(
       future: _resolve(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          // Reading stored server URL/token failed (e.g. a secure-storage
+          // read error on this device) — fall back to setup instead of
+          // hanging on the spinner forever with nothing the user can do.
+          return const SetupScreen();
+        }
         if (!snapshot.hasData) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator(color: kAccent)),
