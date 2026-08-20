@@ -106,6 +106,11 @@ See [Architecture details](docs/architecture_details.md) for the full component 
 
 > **Self-hosted runs over HTTP.** Since you control the machine, there is no third party in the path and no need for TLS between your browser and localhost. The Telegram bot connection is always server-to-server and is handled by Telegram's own TLS.
 
+> **The mobile app (WhatsApp path) requires HTTPS** — plain HTTP is not accepted, even on the same network as your server. Before installing the mobile app, pick one of two paths:
+>
+> - **A real domain (recommended).** Point a domain at your server — a free option like [DuckDNS](https://www.duckdns.org/) works if you don't already own one — so Caddy can issue a real Let's Encrypt certificate automatically. The app then works from anywhere, with nothing extra to set up on the phone itself, ever.
+> - **Local network only.** Skip the domain and use a self-signed certificate instead. This works, but every phone that connects needs that certificate manually installed as a trusted CA first, and only works while on the same local network. Note that the CA certificate should be installed before the app itself gets installed.
+
 ---
 
 
