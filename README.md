@@ -111,7 +111,7 @@ See [Architecture details](docs/architecture_details.md) for the full component 
 
 ## ✅ Requirements
 
-- A Linux machine (Fedora 39+, Ubuntu 22.04+, or Debian 12+)
+- A Linux machine (Fedora 39+, Ubuntu 22.04+, or Debian 12+) to stay on and reachable from your phone whenever you want to share a file from client installed on your mobile.
 - Docker CE + Docker Compose plugin
 - A Telegram account to create a bot
 
