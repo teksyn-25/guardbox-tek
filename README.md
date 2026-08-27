@@ -24,15 +24,13 @@ v1.0 code is ready — Telegram fetch is live. v1.1 code is in progress — What
 
 ## 📁 Repository
 
-```
-backend/   Python API + web dashboard (HTMX, server-rendered)
-mobile/    Flutter native app (v1.1, WhatsApp intake)
-docs/      Architecture, security, portability rules
-scripts/   Build and test runners
-.github/   CI pipeline, CLA bot, review guide
-```
+- `backend/` — Python API + web dashboard (HTMX, server-rendered)
+- `mobile/` — Flutter native app (v1.1, WhatsApp intake)
+- `docs/` — Architecture, security, portability rules
+- `scripts/` — Build and test runners
+- `.github/` — CI pipeline, CLA bot, review guide
 
-Full file-by-file layout: see [`docs/repository-structure.txt`](docs/repository-structure.txt).
+Full file-by-file layout: [`docs/repository-structure.txt`](docs/repository-structure.txt). Full component diagram: [`docs/architecture_details.md`](docs/architecture_details.md).
 
 ---
 
@@ -66,28 +64,7 @@ Full file-by-file layout: see [`docs/repository-structure.txt`](docs/repository-
 
 The original file is never written to disk, never decoded on your device, never passed to another app. You view a screenshot of the reconstructed copy — nothing else reaches you.
 
----
-
-
-## 🖥️ Frontend architecture
-
-GuardBox has two frontends — they coexist in every version and share the same backend API:
-
-| Frontend | Where it lives | Available from |
-|---|---|---|
-| Web UI (HTMX + Jinja2) | `backend/templates/` + `backend/static/` | v1.0 — any browser |
-| Mobile app (Flutter) | `mobile/` | v1.1 — WhatsApp share-sheet |
-
-The web UI is server-rendered by Python (HTMX + Jinja2), tightly coupled to the backend routes, and lives inside `backend/` by design — no separate build step, no separate top-level directory. It is the primary interface for v1.0.
-
-The Flutter app (`mobile/`) is the native mobile client. It calls only the `/api/*` REST endpoints and ships in v1.1 alongside the WhatsApp share-sheet intake. Both are frontends — neither replaces the other.
-
----
-
-
-## Architecture
-
-See [Architecture details](docs/architecture_details.md) for the full component diagram.
+Two frontends share this one backend API: the web UI (HTMX + Jinja2, `backend/templates/`) is the primary v1.0 interface, available from any browser. The Flutter mobile app (`mobile/`) calls only the `/api/*` REST endpoints and ships in v1.1 for WhatsApp share-sheet intake. Neither replaces the other.
 
 ---
 
