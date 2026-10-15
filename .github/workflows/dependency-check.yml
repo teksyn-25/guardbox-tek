@@ -17,7 +17,7 @@ jobs:
       security-events: write  # required to upload SARIF to GitHub Security tab
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Cache NVD database
         uses: actions/cache@v4
